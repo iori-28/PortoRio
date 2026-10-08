@@ -8,8 +8,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f0e7d8">
+  <meta name="description" content="Project liner notes from Rio Rasyha Syadzily's developer discography: the ideas, tools, and work behind each project.">
 
   <title>Project Details | RIO</title>
+  <link rel="icon" href="assets/record.svg" type="image/svg+xml">
 
   <link rel="stylesheet" href="css/detail-base.css">
 
@@ -17,16 +20,17 @@
 </head>
 
 <body>
+  <a class="skip-link" href="#project-content">Skip to project liner notes</a>
 
   <!-- =========================
      NAVBAR
      ========================= -->
 
-  <nav>
+  <nav aria-label="Project navigation">
     <div class="container nav-inner">
 
       <a href="index.html" class="logo">
-        iori<span>-</span>28
+        <img src="assets/record.svg" width="29" height="29" alt="">PortoRio
       </a>
 
       <a href="index.html#projects" class="back-button">
@@ -64,7 +68,8 @@
      MAIN IMAGE
      ========================= -->
 
-  <main class="container">
+  <main class="container" id="project-content" tabindex="-1">
+    <noscript><p class="fallback-note">Enable JavaScript to load these project liner notes, or <a href="index.html#projects">read the project summaries in the collection</a>.</p></noscript>
 
     <div class="main-project-image" id="mainProjectImage">
       Project Image
@@ -287,7 +292,7 @@
   <footer>
 
     <div class="container">
-      © 2026 Rio Rasyha Syadzily. All rights reserved.
+      © <span id="year">2026</span> Rio Rasyha Syadzily. Made of curiosity. Pressed in code.
     </div>
 
   </footer>

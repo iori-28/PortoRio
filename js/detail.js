@@ -397,7 +397,9 @@ const params = new URLSearchParams(window.location.search);
 
 const projectId = params.get("project");
 
-const project = projectData[projectId];
+const project = Object.hasOwn(projectData, projectId) ? projectData[projectId] : null;
+const year = document.getElementById("year");
+if (year) year.textContent = new Date().getFullYear();
 
 
 /* =====================================================
@@ -593,14 +595,14 @@ else {
 
     image.alt = project.title;
 
-    image.onerror = function () {
+    image.addEventListener("error", function () {
 
       this.remove();
 
       mainProjectImage.textContent =
         "Project Image";
 
-    };
+    });
 
     mainProjectImage.innerHTML = "";
 
@@ -669,15 +671,17 @@ else {
       image.alt =
         screenshot.title;
 
-      image.onerror =
-        function () {
+      image.loading = "lazy";
+      image.decoding = "async";
 
-          this.remove();
+      image.addEventListener("error", function () {
 
-          wrapper.textContent =
-            screenshot.title;
+        this.remove();
 
-        };
+        wrapper.textContent =
+          screenshot.title;
+
+      });
 
       wrapper.appendChild(image);
 
