@@ -1,0 +1,353 @@
+/* Shared controls remain available in both the collection and its liner notes. */
+.playback-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.interaction-controls {
+  flex-wrap: wrap;
+}
+
+.interaction-controls .audio-status {
+  flex-basis: 100%;
+}
+
+.tonearm {
+  overflow: visible;
+}
+
+.playback-button {
+  min-height: 44px;
+  padding: .55rem .8rem;
+  border: 1px solid #a99c88;
+  border-radius: 2px;
+  background: #f7f1e6;
+  color: #262520;
+  font: .7rem "Courier New", monospace;
+  cursor: pointer;
+}
+
+.playback-button:hover:not(:disabled) {
+  background: #e7decd;
+}
+
+.playback-button:focus-visible {
+  outline: 2px solid #a3452e;
+  outline-offset: 4px;
+}
+
+.playback-button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.playback-button[aria-pressed="true"] {
+  border-color: #6f7e6a;
+}
+
+.audio-status {
+  margin: .65rem 0 0;
+  color: #686054;
+  font: .65rem/1.6 "Courier New", monospace;
+}
+
+.audio-status::before {
+  content: "●";
+  margin-right: .5rem;
+  color: #948b7c;
+}
+
+[data-playback="playing"] .audio-status::before,
+[data-playback="scratching"] .audio-status::before {
+  color: #617453;
+}
+
+.detail-playback {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid #cfc4b2;
+  background: #f7f1e6;
+}
+
+.navigation-error {
+  padding: 1rem;
+  background: #f7f1e6;
+  color: #262520;
+}
+
+.navigation-error a {
+  text-decoration: underline;
+}
+
+#tonearm-body {
+  transform-box: view-box;
+}
+
+.audio-spectrum {
+  display: block;
+  width: min(100%, 15rem);
+  height: 3rem;
+  flex: 1 1 12rem;
+  color: #a3452e;
+}
+
+.audio-spectrum rect {
+  fill: currentColor;
+}
+
+.detail-playback .audio-spectrum {
+  width: 100%;
+  margin-bottom: .75rem;
+}
+
+.music-credits-button {
+  border: 0;
+  padding: .5rem 0;
+  min-height: 44px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.music-credits-button:hover {
+  color: #a3452e;
+}
+
+.music-credits-button:focus-visible,
+.music-credits a:focus-visible {
+  outline: 2px solid #a3452e;
+  outline-offset: 4px;
+}
+
+html.music-credits-open {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
+.music-credits {
+  width: min(760px, 92vw);
+  height: min(640px, 85dvh);
+  max-height: min(680px, 85dvh);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #a99c88;
+  background: #f7f1e6;
+  color: #262520;
+  overflow: hidden;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.music-credits[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.music-credits::backdrop {
+  background: #26252099;
+}
+
+.music-credits .credits-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid #cfc4b2;
+  flex-shrink: 0;
+}
+
+.music-credits h2 {
+  margin: 0;
+  font: normal clamp(1.7rem, 4vw, 2.1rem)/1.15 Georgia, serif;
+}
+
+.music-credits .credits-kicker {
+  margin: .65rem 0 0;
+  color: #6a584b;
+  font-size: .7rem;
+  line-height: 1.5;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.music-credits .credits-close {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #cfc4b2;
+  background: transparent;
+  color: #262520;
+  font: 1.6rem/1 Georgia, serif;
+  cursor: pointer;
+}
+
+.music-credits .credits-close:hover {
+  background: #e9dfce;
+}
+
+.music-credits .credits-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.music-credits .credits-selector {
+  display: flex;
+  gap: .25rem;
+  padding: .65rem 1rem;
+  overflow-x: auto;
+  border-bottom: 1px solid #cfc4b2;
+}
+
+.music-credits .credits-section {
+  display: flex;
+  align-items: baseline;
+  gap: .55rem;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: .75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #55483d;
+  font: .85rem/1.4 "Segoe UI", Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.music-credits .credits-number {
+  color: #736455;
+  font: .7rem "Courier New", monospace;
+}
+
+.music-credits .credits-section:hover {
+  background: #eee4d5;
+}
+
+.music-credits .credits-section[aria-pressed="true"] {
+  color: #943d29;
+  border-color: #a3452e;
+  background: #eee4d5;
+}
+
+.music-credits button:focus-visible {
+  outline: 2px solid #a3452e;
+  outline-offset: -3px;
+}
+
+.music-credits .credits-details {
+  min-width: 0;
+  min-height: 19rem;
+  padding: 1.4rem;
+  overflow-wrap: anywhere;
+}
+
+.music-credits .credits-details>.credits-kicker {
+  margin: 0 0 1.25rem;
+}
+
+.music-credits .credits-provisional {
+  margin: 0 0 .45rem;
+  color: #6a584b;
+  font-size: .75rem;
+}
+
+.music-credits .credits-track-title {
+  margin: 0;
+  font: normal clamp(1.65rem, 3.4vw, 2.2rem)/1.15 Georgia, serif;
+  letter-spacing: -.025em;
+  text-wrap: pretty;
+}
+
+.music-credits .credits-composer {
+  margin: .75rem 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.music-credits .credits-metadata {
+  margin: 1.4rem 0 0;
+  font-size: .88rem;
+  line-height: 1.55;
+}
+
+.music-credits dt {
+  margin: .9rem 0 .25rem;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #6a584b;
+}
+
+.music-credits dd {
+  margin: 0;
+}
+
+.music-credits .credits-note,
+.music-credits .credits-empty {
+  margin: 1.25rem 0 0;
+  color: #6a584b;
+  font-size: .82rem;
+  line-height: 1.6;
+}
+
+.music-credits .credits-footer {
+  flex-shrink: 0;
+  padding: .9rem 1.25rem;
+  border-top: 1px solid #cfc4b2;
+  color: #6a584b;
+  font-size: .75rem;
+  line-height: 1.6;
+}
+
+.music-credits a {
+  color: #943d29;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (min-width: 641px) {
+  .music-credits .credits-heading {
+    padding: 1.5rem 1.75rem;
+  }
+
+  .music-credits .credits-body {
+    display: grid;
+    grid-template-columns: 30% minmax(0, 1fr);
+  }
+
+  .music-credits .credits-selector {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    padding: 1.1rem .65rem;
+    gap: .15rem;
+    border: 0;
+    overflow: visible;
+  }
+
+  .music-credits .credits-section {
+    width: 100%;
+    border-bottom: 0;
+    border-left: 2px solid transparent;
+    padding: .8rem .65rem;
+  }
+
+  .music-credits .credits-section[aria-pressed="true"] {
+    border-left-color: #a3452e;
+  }
+
+  .music-credits .credits-details {
+    min-height: 22rem;
+    padding: 1.5rem 1.75rem;
+    border-left: 1px solid #cfc4b2;
+  }
+
+  .music-credits .credits-footer {
+    padding-inline: 1.75rem;
+  }
+}

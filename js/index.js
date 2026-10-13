@@ -1,19 +1,23 @@
-(() => {
+window.mountPortorioHome = () => {
   "use strict";
 
+  const lifetime = new AbortController();
+  const listen = (target, type, callback, options = {}) => target?.addEventListener(type, callback, { ...options, signal: lifetime.signal });
+  const engine = window.portorioAudio;
+  let disposeCollection = () => { };
   const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
   const year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
   const navbar = document.getElementById("navbar");
   const updateNavbar = () => navbar?.classList.toggle("scrolled", window.scrollY > 20);
-  window.addEventListener("scroll", updateNavbar, { passive: true });
+  listen(window, "scroll", updateNavbar, { passive: true });
   updateNavbar();
 
   class VinylController {
     constructor(surface, record) {
       this.surface = surface;
       this.record = record;
-      this.rotation = 0;
+      this.rotation = engine.angle;
       this.velocity = 0;
       this.frame = 0;
       this.pointer = null;
@@ -21,28 +25,29 @@
       this.samples = [];
       this.tick = this.tick.bind(this);
       surface.tabIndex = 0;
-      surface.addEventListener("pointerdown", (event) => this.startDrag(event));
-      surface.addEventListener("pointermove", (event) => this.moveDrag(event));
-      surface.addEventListener("pointerup", (event) => this.endDrag(event));
-      surface.addEventListener("pointercancel", (event) => this.endDrag(event, true));
-      surface.addEventListener("lostpointercapture", (event) => this.endDrag(event, true));
-      surface.addEventListener("keydown", (event) => this.keyboard(event));
-      surface.addEventListener("dragstart", (event) => event.preventDefault());
-      document.getElementById("stop-record")?.addEventListener("click", () => this.stop());
-      window.addEventListener("blur", () => this.stop());
-      window.addEventListener("resize", () => this.stop(), { passive: true });
+      listen(surface, "pointerdown", (event) => this.startDrag(event));
+      listen(surface, "pointermove", (event) => this.moveDrag(event));
+      listen(surface, "pointerup", (event) => this.endDrag(event));
+      listen(surface, "pointercancel", (event) => this.endDrag(event, true));
+      listen(surface, "lostpointercapture", (event) => this.endDrag(event, true));
+      listen(surface, "keydown", (event) => this.keyboard(event));
+      listen(surface, "dragstart", (event) => event.preventDefault());
+      listen(document.getElementById("stop-record"), "click", () => this.stop());
+      listen(window, "blur", () => this.stop());
+      listen(window, "resize", () => this.stop(), { passive: true });
       // Scrolling changes the cached center; interrupt safely instead of jumping.
-      window.addEventListener("scroll", () => {
+      listen(window, "scroll", () => {
         if (this.pointer !== null) this.stop();
       }, { passive: true });
-      document.addEventListener("visibilitychange", () => {
+      listen(document, "visibilitychange", () => {
         if (document.hidden) this.stop();
       });
-      window.addEventListener("pagehide", () => this.stop());
-      motionPreference.addEventListener("change", () => this.stop());
+      listen(window, "pagehide", () => this.stop());
+      listen(motionPreference, "change", () => this.stop());
     }
 
     render() {
+      engine.angle = this.rotation;
       this.record.style.transform = `rotate(${this.rotation}deg)`;
     }
 
@@ -54,15 +59,17 @@
     }
 
     startDrag(event) {
-      if (!this.enabled || this.pointer !== null || !event.isPrimary || event.button !== 0) return;
-      this.stop();
+      if (engine.state === "starting" || !this.enabled || this.pointer !== null || !event.isPrimary || event.button !== 0) return;
       const bounds = this.surface.getBoundingClientRect();
       this.center = { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
       this.deadZone = Math.max(10, bounds.width * .055);
       // Ignore the transparent square corners of the circular hit area.
       if (Math.hypot(event.clientX - this.center.x, event.clientY - this.center.y) > bounds.width / 2) return;
+      this.stop();
       event.preventDefault();
       this.surface.focus({ preventScroll: true });
+      this.origin = { x: event.clientX, y: event.clientY };
+      this.hasDragged = false;
       this.pointer = event.pointerId;
       this.lastAngle = this.angleAt(event);
       this.samples = [{ time: event.timeStamp, angle: this.rotation }];
@@ -70,9 +77,11 @@
         this.surface.setPointerCapture(event.pointerId);
       } catch {
         this.stop();
+        this.wake();
         return;
       }
       this.surface.classList.add("is-dragging");
+      engine.beginScratch();
     }
 
     sample(event) {
@@ -85,6 +94,9 @@
       // Shortest signed delta; cumulative rotation itself is never wrapped.
       const delta = ((angle - this.lastAngle + 540) % 360) - 180;
       this.lastAngle = angle;
+      if (this.origin && Math.hypot(event.clientX - this.origin.x, event.clientY - this.origin.y) > 6) this.hasDragged = true;
+      const elapsed = Math.max(.008, (event.timeStamp - this.samples.at(-1).time) / 1000);
+      engine.scratch(delta, delta / elapsed);
       this.rotation += delta;
       const previous = this.samples.at(-1);
       const beforePrevious = this.samples.at(-2);
@@ -111,12 +123,14 @@
       const last = this.samples.at(-1);
       const elapsed = last && first ? (last.time - first.time) / 1000 : 0;
       const velocity = elapsed >= .008 ? (last.angle - first.angle) / elapsed : 0;
+      this.suppressClick = this.hasDragged;
       this.releasePointer();
+      engine.endScratch();
       this.velocity = cancelled || motionPreference.matches ? 0 : Math.max(-1440, Math.min(1440, velocity));
-      if (Math.abs(this.velocity) > 4) {
+      if (Math.abs(this.velocity) > 4 || engine.state === "playing") {
         this.lastFrameTime = performance.now();
         this.surface.classList.add("is-moving");
-        this.frame = requestAnimationFrame(this.tick);
+        if (!this.frame) this.frame = requestAnimationFrame(this.tick);
       }
     }
 
@@ -135,17 +149,22 @@
       }
       const dt = Math.min(Math.max((now - this.lastFrameTime) / 1000, 0), .05);
       this.lastFrameTime = now;
-      const friction = 2.35;
+      const target = engine.state === "playing" ? 200 : 0;
+      const friction = target ? 7 : 2.35;
       const damping = Math.exp(-friction * dt);
-      // Integrate exponential decay, rather than assuming a 60 Hz frame rate.
-      this.rotation += this.velocity * (1 - damping) / friction;
-      this.velocity *= damping;
+      this.rotation += target * dt + (this.velocity - target) * (1 - damping) / friction;
+      this.velocity = target + (this.velocity - target) * damping;
       this.render();
-      if (Math.abs(this.velocity) > 4) {
-        this.frame = requestAnimationFrame(this.tick);
-      } else {
-        this.stop();
-      }
+      if (target || Math.abs(this.velocity) > 4) this.frame = requestAnimationFrame(this.tick);
+      else this.stop();
+    }
+
+    wake() {
+      if (this.frame || this.pointer !== null || !this.enabled || document.hidden || motionPreference.matches) return;
+      if (engine.state !== "playing") return;
+      this.lastFrameTime = performance.now();
+      this.surface.classList.add("is-moving");
+      this.frame = requestAnimationFrame(this.tick);
     }
 
     stop() {
@@ -153,29 +172,33 @@
       this.frame = 0;
       this.velocity = 0;
       this.releasePointer();
+      engine.endScratch();
       this.samples = [];
       this.surface.classList.remove("is-moving");
     }
 
     setEnabled(enabled) {
-      this.stop();
       this.enabled = enabled;
+      this.stop();
       this.surface.setAttribute("aria-disabled", String(!enabled));
+      if (enabled) this.wake();
     }
 
     reset() {
       this.stop();
-      this.rotation = 0;
       this.render();
+      this.wake();
     }
 
     keyboard(event) {
       if (!this.enabled || !["ArrowLeft", "ArrowRight", " ", "Escape"].includes(event.key)) return;
       event.preventDefault();
       this.stop();
+      if ([" ", "Escape"].includes(event.key)) engine.stop();
       if (event.key.startsWith("Arrow")) {
         this.rotation += (event.key === "ArrowRight" ? 1 : -1) * (event.shiftKey ? 45 : 15);
         this.render();
+        this.wake();
       }
     }
   }
@@ -191,6 +214,17 @@
     if (!room || !surface || !record || !recordMotion || !notes || sleeves.length !== panels.length) return;
 
     const controller = new VinylController(surface, record);
+    listen(engine, "change", () => {
+      if (["stopping", "error", "loading", "starting"].includes(engine.state)) controller.stop();
+      controller.wake();
+    });
+    listen(document, "visibilitychange", () => controller.wake());
+    listen(window, "focus", () => controller.wake());
+    listen(window, "resize", () => controller.wake(), { passive: true });
+    listen(motionPreference, "change", () => controller.wake());
+    listen(surface, "click", (event) => {
+      if (controller.suppressClick) { event.preventDefault(); event.stopPropagation(); controller.suppressClick = false; }
+    }, { capture: true });
     const records = new Map(sleeves.map((sleeve, index) => [sleeve.dataset.record, {
       sleeve,
       panel: panels.find((panel) => panel.id === sleeve.dataset.record),
@@ -209,6 +243,7 @@
     let animation = null;
     let skipTransition = false;
 
+    let disposed = false;
     function setState(state) {
       room.dataset.state = state;
       controller.setEnabled(state === "ready");
@@ -233,6 +268,7 @@
       document.getElementById("notes-jump").href = `#${id}`;
       surface.setAttribute("aria-label", `${entry.title} vinyl`);
       active = id;
+      engine.select(id);
       controller.reset();
       if (restoreFocus) entry.panel.querySelector("h2").focus({ preventScroll: true });
     }
@@ -283,7 +319,7 @@
       switching = true;
       try {
         // Only the latest pending request survives. There is one physical record.
-        while (requested.id !== active) {
+        while (!disposed && requested.id !== active) {
           skipTransition = motionPreference.matches || document.hidden;
           setState("returning");
           await animateRecord([
@@ -292,6 +328,7 @@
             { transform: sleevePosition(active, true), opacity: 1, offset: .8 },
             { transform: sleevePosition(active), opacity: 0 }
           ], 230);
+          if (disposed) return;
           const next = requested.id;
           revealSleeve(next);
           showRecord(next);
@@ -314,6 +351,7 @@
       } finally {
         animation?.cancel();
         animation = null;
+        if (disposed) return;
         switching = false;
         setState("ready");
         document.getElementById("selection-status").textContent = `${records.get(active).title} selected. Liner notes are ready.`;
@@ -335,7 +373,7 @@
       void processSelection();
     }
 
-    document.addEventListener("click", (event) => {
+    listen(document, "click", (event) => {
       const anchor = event.target.closest('a[href^="#"]');
       if (!anchor || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const hash = anchor.getAttribute("href").slice(1);
@@ -343,7 +381,7 @@
       event.preventDefault();
       select(resolve(hash), { focus: !anchor.classList.contains("sleeve") });
     });
-    document.getElementById("sleeve-list").addEventListener("keydown", (event) => {
+    listen(document.getElementById("sleeve-list"), "keydown", (event) => {
       if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
       const index = sleeves.indexOf(event.target.closest(".sleeve"));
       if (index < 0) return;
@@ -352,7 +390,7 @@
         (index + (["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1) + sleeves.length) % sleeves.length;
       sleeves[next].focus();
     });
-    window.addEventListener("hashchange", () => {
+    listen(window, "hashchange", () => {
       const hash = location.hash.slice(1);
       if (!hash || records.has(hash) || Object.hasOwn(aliases, hash)) {
         select(resolve(hash), { history: false });
@@ -363,12 +401,13 @@
       skipTransition = true;
       animation?.finish();
     };
-    motionPreference.addEventListener("change", finishTransition);
-    window.addEventListener("resize", finishTransition, { passive: true });
-    document.addEventListener("visibilitychange", () => {
+    listen(motionPreference, "change", finishTransition);
+    listen(window, "resize", finishTransition, { passive: true });
+    listen(document, "visibilitychange", () => {
       if (document.hidden) finishTransition();
     });
-    window.addEventListener("pagehide", finishTransition);
+    listen(window, "pagehide", finishTransition);
+    disposeCollection = () => { disposed = true; animation?.cancel(); controller.enabled = false; controller.stop(); };
     showRecord(active);
     revealSleeve(active);
     document.body.classList.add("enhanced");
@@ -389,23 +428,23 @@
         toggle.setAttribute("aria-pressed", String(visible));
         toggle.textContent = `${visible ? "Hide" : "Show"} logos ${visible ? "−" : "+"}`;
       };
-      card.addEventListener("pointerenter", (event) => {
+      listen(card, "pointerenter", (event) => {
         if (event.pointerType === "mouse") show(true);
       });
-      card.addEventListener("pointerleave", (event) => {
+      listen(card, "pointerleave", (event) => {
         if (event.pointerType === "mouse" && !pinned && !card.contains(document.activeElement)) show(false);
       });
-      card.addEventListener("focusin", () => {
+      listen(card, "focusin", () => {
         if (toggle.matches(":focus-visible")) show(true);
       });
-      card.addEventListener("focusout", (event) => {
+      listen(card, "focusout", (event) => {
         if (!card.contains(event.relatedTarget) && !pinned) show(false);
       });
-      card.addEventListener("click", () => {
+      listen(card, "click", () => {
         pinned = !card.classList.contains("logos-visible");
         show(pinned);
       });
-      card.addEventListener("keydown", (event) => {
+      listen(card, "keydown", (event) => {
         if (event.key === "Escape") { pinned = false; show(false); }
       });
     });
@@ -413,4 +452,5 @@
 
   initializeCollection();
   initializeSkills();
-})();
+  return () => { lifetime.abort(); disposeCollection(); };
+};

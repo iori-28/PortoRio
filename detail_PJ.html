@@ -9,7 +9,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f0e7d8">
-  <meta name="description" content="Project liner notes from Rio Rasyha Syadzily's developer discography: the ideas, tools, and work behind each project.">
+  <meta name="description"
+    content="Project liner notes from Rio Rasyha Syadzily's developer discography: the ideas, tools, and work behind each project.">
 
   <title>Project Details | RIO</title>
   <link rel="icon" href="assets/record.svg" type="image/svg+xml">
@@ -17,6 +18,7 @@
   <link rel="stylesheet" href="css/detail-base.css">
 
   <link rel="stylesheet" href="css/detail.css">
+  <link rel="stylesheet" href="css/playback.css">
 </head>
 
 <body>
@@ -34,7 +36,7 @@
       </a>
 
       <a href="index.html#projects" class="back-button">
-        ← Back to Projects
+        Back to Projects
       </a>
 
     </div>
@@ -69,7 +71,18 @@
      ========================= -->
 
   <main class="container" id="project-content" tabindex="-1">
-    <noscript><p class="fallback-note">Enable JavaScript to load these project liner notes, or <a href="index.html#projects">read the project summaries in the collection</a>.</p></noscript>
+    <div class="detail-playback" id="detail-playback" aria-label="Projects soundtrack" hidden>
+      <svg class="audio-spectrum" data-spectrum viewBox="0 0 240 48" aria-hidden="true" focusable="false"></svg>
+      <div class="playback-buttons"><button class="playback-button" type="button" data-play aria-label="Play record"
+          aria-pressed="false">&#9654; Play</button><button class="playback-button" id="stop-record" type="button"
+          data-stop aria-label="Stop record">&#9632; Stop</button><button class="playback-button" type="button"
+          data-retry hidden>Retry soundtrack</button></div>
+      <p class="audio-status" data-audio-status role="status" aria-live="polite">Stopped</p>
+    </div>
+    <noscript>
+      <p class="fallback-note">Enable JavaScript to load these project liner notes, or <a
+          href="index.html#projects">read the project summaries in the collection</a>.</p>
+    </noscript>
 
     <div class="main-project-image" id="mainProjectImage">
       Project Image
@@ -298,7 +311,7 @@
   </footer>
 
 
-  <script src="js/detail.js"></script>
+  <script src="js/app.js"></script>
 
 </body>
 
