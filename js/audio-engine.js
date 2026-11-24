@@ -56,7 +56,6 @@
       this.section = section;
       this.position = this.positions.get(section) || 0;
       this.buffer = null;
-      this.reverse = null;
       this.update("stopped", "Paused");
       // Stop holds only within the current owner; Projects children share an owner.
       void this.play();
@@ -125,18 +124,16 @@
             if (!response.ok) throw new Error(`Audio HTTP ${response.status}: ${track.src}`);
             const buffer = await this.context.decodeAudioData(await response.arrayBuffer());
             if (token !== this.generation) return;
-            const reverse = this.context.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
-            for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
-              reverse.copyToChannel(buffer.getChannelData(channel).slice().reverse(), channel);
-            }
-            decoded = { buffer, reverse };
+            // Decoded PCM is large (a 9-minute track is ~200 MB), so only the current
+            // record stays resident. Backward scratches are reversed per grain instead
+            // of keeping a full reversed copy of every track.
+            this.cache.clear();
+            decoded = { buffer };
             this.cache.set(track.src, decoded);
-            if (this.cache.size > 2) this.cache.delete(this.cache.keys().next().value);
           } finally { clearTimeout(timeout); }
         }
         if (token !== this.generation) return;
         this.buffer = decoded.buffer;
-        this.reverse = decoded.reverse;
         this.position = wrap(this.position, this.duration);
         this.update("starting", "Lowering stylus…");
         this.timer = setTimeout(() => {
@@ -249,18 +246,37 @@
       this.stopNodes();
       const source = this.context.createBufferSource();
       const envelope = this.context.createGain();
-      source.buffer = delta < 0 ? this.reverse : this.buffer;
-      source.loop = true;
-      source.playbackRate.value = Math.max(.2, Math.min(4, Math.abs(velocity) / 200));
+      const rate = Math.max(.2, Math.min(4, Math.abs(velocity) / 200));
+      const backward = delta < 0;
+      source.buffer = backward ? this.reverseGrain(this.position, rate) : this.buffer;
+      source.loop = !backward;
+      source.playbackRate.value = rate;
       source.connect(envelope);
       envelope.connect(this.gain);
       envelope.gain.setValueAtTime(0, now);
       envelope.gain.linearRampToValueAtTime(.9, now + .004);
       envelope.gain.linearRampToValueAtTime(0, now + .065);
-      source.start(now, wrap(delta < 0 ? this.duration - this.position : this.position, this.duration));
+      source.start(now, backward ? 0 : wrap(this.position, this.duration));
       source.stop(now + .07);
       this.nodes.add(source);
       source.onended = () => { this.nodes.delete(source); source.disconnect(); envelope.disconnect(); };
+    }
+    // A short buffer holding the audio just before `position`, reversed: enough for
+    // one 70 ms grain at the given playback rate (at most ~14k samples per channel).
+    reverseGrain(position, rate) {
+      const buffer = this.buffer;
+      const length = Math.ceil(buffer.sampleRate * .075 * rate) + 1;
+      const grain = this.context.createBuffer(buffer.numberOfChannels, length, buffer.sampleRate);
+      const end = Math.min(buffer.length - 1, Math.round(wrap(position, this.duration) * buffer.sampleRate));
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const input = buffer.getChannelData(channel);
+        const output = grain.getChannelData(channel);
+        for (let index = 0; index < length; index++) {
+          const sample = end - index;
+          output[index] = input[sample < 0 ? sample + input.length : sample];
+        }
+      }
+      return grain;
     }
     endScratch() {
       if (this.state !== "scratching") return;

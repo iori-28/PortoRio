@@ -1,18 +1,5 @@
-/* PortoRio / Vol. 02 — paper, ink, and liner notes. */
-:root {
-  color-scheme: light;
-  --paper: #f0e7d8;
-  --paper-light: #f7f1e6;
-  --ink: #262520;
-  --muted: #686054;
-  --rust: #a3452e;
-  --line: #cfc4b2;
-  --sage: #788578;
-  --display: Georgia, "Times New Roman", serif;
-  --body: "Segoe UI", Arial, sans-serif;
-  --mono: "Courier New", monospace;
-}
-
+/* PortoRio / Vol. 02 — ink, paper-white, and a crimson thread. */
+/* Colour, type, and motion tokens live in theme.css. */
 * {
   box-sizing: border-box;
 }
@@ -20,22 +7,13 @@
 body {
   margin: 0;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--bg);
   font: 1rem/1.65 var(--body);
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  pointer-events: none;
-  opacity: .13;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%2399866d' opacity='.22' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+  overflow-x: clip;
 }
 
 html {
-  scroll-padding-top: 6rem;
+  scroll-padding-top: calc(var(--header-h) + 1rem);
 }
 
 h1,
@@ -67,13 +45,13 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--rust);
+  outline: 2px solid var(--accent);
   outline-offset: 5px;
 }
 
 ::selection {
-  color: var(--paper-light);
-  background: var(--rust);
+  color: #fff;
+  background: var(--accent);
 }
 
 [hidden] {
@@ -116,9 +94,10 @@ a {
   left: 1rem;
   z-index: 100;
   padding: .8rem 1.2rem;
-  color: var(--paper-light);
+  color: var(--on-ink);
   background: var(--ink);
   transform: translateY(-180%);
+  transition: transform var(--dur-micro) var(--ease-out);
 }
 
 .skip-link:focus {
@@ -130,12 +109,23 @@ a {
   top: 0;
   z-index: 30;
   border-bottom: 1px solid var(--line);
-  background: var(--paper);
-  transition: box-shadow .2s;
+  background: var(--bg);
 }
 
-.navbar.scrolled {
-  box-shadow: 0 4px 16px #2625200a;
+/* The shadow fades in on a pseudo-element so only opacity animates. */
+.navbar::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: 12px;
+  background: linear-gradient(var(--shadow), transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-ui) var(--ease-out);
+}
+
+.navbar.scrolled::after {
+  opacity: .35;
 }
 
 .nav-inner {
@@ -143,19 +133,26 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 76px;
+  min-height: var(--header-h);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .wordmark {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  font: bold 1.55rem var(--display);
+  font: bold 1.4rem var(--display);
   letter-spacing: -.07em;
   min-height: 44px;
 }
 
 .edition {
+  display: none;
   margin: 5px 0 0 6px;
   font: .57rem var(--mono);
   letter-spacing: .06em;
@@ -182,45 +179,30 @@ a {
   min-height: 44px;
 }
 
+.quick-nav a,
+.text-link,
+.footer a,
+.sleeve-caption strong,
+.track h3 a,
+.contact-email,
+.profile-links a {
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
 .quick-nav a:hover,
 .text-link:hover,
 .footer a:hover {
-  color: var(--rust);
+  color: var(--accent-ink);
 }
 
 .quick-nav a:first-child {
   display: none;
 }
 
-.masthead {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 2rem;
-  padding: 32px 0 30px;
-}
-
-.masthead h1 {
-  font: normal clamp(2rem, 4vw, 3.25rem)/1.15 var(--display);
-  letter-spacing: -.055em;
-  margin-top: .55rem;
-}
-
-.masthead h1 em {
-  font-weight: normal;
-}
-
-.masthead-note {
-  display: none;
-  font-size: .76rem;
-  color: var(--muted);
-}
-
 .listening-room {
   display: grid;
   gap: 26px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
+  padding-top: 22px;
   align-items: start;
 }
 
@@ -254,6 +236,7 @@ a {
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
+  overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
 }
 
@@ -298,17 +281,20 @@ a {
   position: absolute;
   right: 0;
   bottom: 29px;
-  background: var(--rust);
+  background: var(--accent);
   border-radius: 50%;
   opacity: 0;
+  transform: scale(.4);
+  transition: opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
 }
 
 .sleeve[aria-current] .selection-dot {
   opacity: 1;
+  transform: none;
 }
 
 .sleeve[aria-current] strong {
-  color: var(--rust);
+  color: var(--accent-ink);
 }
 
 .collection-hint {
@@ -338,7 +324,7 @@ a {
   width: 6px;
   height: 6px;
   margin: 0 8px 2px 0;
-  background: #596953;
+  background: var(--accent);
   border-radius: 50%;
 }
 
@@ -356,7 +342,7 @@ a {
 
 .record-mark {
   font: 2.3rem var(--display);
-  color: var(--rust);
+  color: var(--accent);
 }
 
 .interaction-controls {
@@ -395,7 +381,7 @@ a {
 }
 
 .stop-record:hover {
-  background: var(--paper-light);
+  background: var(--surface);
 }
 
 .notes-jump {
@@ -406,11 +392,12 @@ a {
   font-size: .75rem;
   border-bottom: 1px solid var(--line);
   margin-top: 12px;
+  transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
 }
 
-.notes-jump:hover{
-  background: var(--paper-light);
-  border-bottom: 1px solid var(--line);
+.notes-jump:hover {
+  color: var(--accent-ink);
+  border-bottom-color: var(--accent);
 }
 
 .liner-notes {
@@ -431,6 +418,30 @@ a {
   margin-top: 0;
 }
 
+/* Liner notes ease in when a new record is placed (never on first paint). */
+.animate-panels .record-panel:not([hidden]) {
+  animation: panel-in var(--dur-reveal) var(--ease-out) both;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Opacity-only pulse while the stylus is down. */
+body[data-playback="playing"] .status-dot,
+body[data-playback="scratching"] .status-dot {
+  animation: status-pulse 1.8s var(--ease-in-out) infinite;
+}
+
+@keyframes status-pulse {
+  50% {
+    opacity: .3;
+  }
+}
+
 .panel-catalog {
   padding-bottom: 20px;
   border-bottom: 1px solid var(--line);
@@ -444,7 +455,7 @@ a {
 }
 
 .record-panel h2 em {
-  color: var(--rust);
+  color: var(--accent);
   font-weight: normal;
 }
 
@@ -463,7 +474,7 @@ a {
   display: inline-block;
   font-family: var(--body);
   font-size: .7em;
-  color: var(--rust);
+  color: var(--accent);
   vertical-align: top;
   margin: -.05em 0 0 .25em;
 }
@@ -517,16 +528,17 @@ a {
   gap: 25px;
   padding: 11px 18px;
   font-size: .8rem;
-  transition: background .18s;
+  transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
 }
 
 .button-ink {
   background: var(--ink);
-  color: var(--paper-light);
+  color: var(--on-ink);
 }
 
 .button-ink:hover {
-  background: var(--rust);
+  background: var(--accent);
+  color: #fff;
 }
 
 .text-link {
@@ -550,7 +562,7 @@ a {
 .artist-note img {
   border-radius: 50%;
   object-fit: cover;
-  filter: sepia(.35);
+  filter: grayscale(1);
   flex-shrink: 0;
 }
 
@@ -570,7 +582,7 @@ a {
 
 .handwritten {
   font: italic 1.15rem/1.5 var(--display);
-  color: var(--rust);
+  color: var(--accent-ink);
   margin-top: 25px;
 }
 
@@ -591,29 +603,43 @@ a {
 .track-cover {
   position: relative;
   align-self: start;
-  background: #ded2bd;
+  overflow: hidden;
+  background: var(--surface-2);
   border: 1px solid var(--line);
 }
 
+/* Covers rest in monochrome and regain colour on hover/focus. A blended
+   overlay fades out, so only opacity animates (no per-frame filter work). */
 .track-cover img {
   width: 100%;
   height: 74px;
   object-fit: cover;
-  transition: filter .2s;
-  filter: saturate(.7);
 }
 
-.track-cover:hover img {
-  filter: none;
+.track-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #808080;
+  mix-blend-mode: saturation;
+  pointer-events: none;
+  transition: opacity var(--dur-ui) var(--ease-out);
+}
+
+.track-cover:hover::before,
+.track-cover:focus-visible::before {
+  opacity: 0;
 }
 
 .track-cover>span {
   position: absolute;
   bottom: 0;
   left: 0;
+  z-index: 2;
   font: .6rem var(--mono);
   background: var(--ink);
-  color: var(--paper);
+  color: var(--on-ink);
   padding: 4px 7px;
 }
 
@@ -635,7 +661,7 @@ a {
 }
 
 .track h3 a:hover {
-  color: var(--rust);
+  color: var(--accent-ink);
 }
 
 .track h3 span {
@@ -650,7 +676,7 @@ a {
 
 .track .track-tech {
   font: .59rem/1.8 var(--mono);
-  color: var(--rust);
+  color: var(--accent-ink);
   margin-top: 8px;
 }
 
@@ -677,7 +703,7 @@ a {
   padding: 4px 0 4px 6px;
   min-height: 44px;
   font: .6rem var(--mono);
-  color: var(--rust);
+  color: var(--accent-ink);
   flex-shrink: 0;
 }
 
@@ -694,13 +720,13 @@ a {
   align-items: center;
   padding: 6px 8px;
   border: 1px solid var(--line);
-  background: #f7f1e655;
+  background: var(--surface);
   font-size: .7rem;
 }
 
 .tag img {
   object-fit: contain;
-  transition: opacity .16s, transform .16s;
+  transition: opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
 }
 
 .skills-interactive .skill-card:not(.logos-visible) .tag img {
@@ -716,8 +742,9 @@ a {
   position: relative;
   padding: 25px;
   margin: 25px 0;
-  background: #e6d6b7;
-  border: 1px solid #bcb6aa;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
 }
 
 .education-card h3 {
@@ -735,7 +762,7 @@ a {
   right: 23px;
   top: 42px;
   font-size: 2.7rem;
-  color: #64634f;
+  color: var(--muted);
 }
 
 .liner-entry {
@@ -754,7 +781,7 @@ a {
 }
 
 .liner-entry .entry-role {
-  color: var(--rust);
+  color: var(--accent-ink);
   font-size: .74rem;
   margin-bottom: 9px;
 }
@@ -787,7 +814,7 @@ a {
 
 .contact-email:hover,
 .profile-links a:hover {
-  color: var(--rust);
+  color: var(--accent-ink);
 }
 
 .profile-links a {
@@ -853,8 +880,12 @@ a {
     display: flex;
   }
 
-  .masthead {
-    padding-block: 36px;
+  .edition {
+    display: inline-block;
+  }
+
+  .wordmark {
+    font-size: 1.55rem;
   }
 
   .sleeve-list {
@@ -907,7 +938,7 @@ a {
 
   .turntable-column {
     position: sticky;
-    top: 105px;
+    top: calc(var(--header-h) + 28px);
   }
 
   .record-panel {
@@ -942,20 +973,16 @@ a {
     width: min(1440px, calc(100% - 88px));
   }
 
-  .masthead-note {
-    display: block;
-  }
-
   .listening-room {
     grid-template-columns: 192px minmax(0, 1.17fr) minmax(0, 1fr);
     gap: 36px;
-    padding-top: 30px;
+    padding-top: 40px;
   }
 
   .collection {
     grid-column: auto;
     position: sticky;
-    top: 105px;
+    top: calc(var(--header-h) + 28px);
   }
 
   .collection-return {
@@ -1055,19 +1082,8 @@ a {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
-  }
-}
-
 @media print {
 
-  body::before,
   .collection,
   .turntable-column,
   .quick-nav,
@@ -1093,4 +1109,16 @@ a {
     border: 0;
     padding: 0;
   }
+}
+/* Experience entries link to their detail pages. */
+.liner-entry h3 a {
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
+.liner-entry h3 a:hover {
+  color: var(--accent-ink);
+}
+
+.liner-entry .text-link {
+  margin-top: 6px;
 }

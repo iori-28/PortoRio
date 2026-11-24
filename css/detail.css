@@ -1,13 +1,6 @@
 /* V2 liner notes; loaded after detail-base.css. */
 :root {
-  color-scheme: light;
-  --bg: #f0e7d8;
-  --card: #f7f1e6;
-  --text: #262520;
-  --muted: #686054;
-  --border: #cfc4b2;
-  --accent: #a3452e;
-  --accent-light: #a3452e;
+  /* Colour tokens come from theme.css. */
   --max-width: 1180px;
 }
 
@@ -18,7 +11,7 @@ html {
 body {
   font-family: "Segoe UI", Arial, sans-serif;
   background: var(--bg);
-  color: var(--text);
+  color: var(--ink);
   overflow-wrap: anywhere;
 }
 
@@ -33,9 +26,9 @@ a:focus-visible {
 }
 
 nav {
-  height: 76px;
+  height: var(--header-h);
   background: var(--bg);
-  border-bottom-color: var(--border);
+  border-bottom-color: var(--line);
   backdrop-filter: none;
 }
 
@@ -44,13 +37,19 @@ nav {
   align-items: center;
   gap: 9px;
   min-height: 44px;
-  font: bold 1.55rem Georgia, serif;
+  font: bold 1.4rem var(--display);
   letter-spacing: -.06em;
 }
 
 .logo img {
   width: 29px;
   height: 29px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .back-button {
@@ -63,7 +62,7 @@ nav {
 
 .back-button:hover,
 .project-link:hover {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .project-hero {
@@ -71,7 +70,7 @@ nav {
 }
 
 .project-category {
-  color: var(--accent);
+  color: var(--accent-ink);
   font: .72rem/1.6 "Courier New", monospace;
   letter-spacing: .08em;
 }
@@ -88,8 +87,8 @@ nav {
 
 .main-project-image,
 .screenshot {
-  background: #e7decd;
-  border-color: var(--border);
+  background: var(--surface-2);
+  border-color: var(--line);
   border-radius: 2px;
   color: var(--muted);
 }
@@ -113,7 +112,7 @@ nav {
   font: normal clamp(1.9rem, 3vw, 2.5rem)/1.2 Georgia, serif;
   letter-spacing: -.04em;
   padding-bottom: 15px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .detail-section p,
@@ -132,10 +131,10 @@ nav {
 .process-step,
 .sidebar-card,
 .project-link {
-  background: var(--card);
-  border-color: var(--border);
+  background: var(--surface);
+  border-color: var(--line);
   border-radius: 2px;
-  color: var(--text);
+  color: var(--ink);
 }
 
 .tech-tag {
@@ -144,7 +143,7 @@ nav {
 
 .role-box strong,
 .features-list li::before {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .features-list li {
@@ -152,7 +151,7 @@ nav {
 }
 
 .process-number {
-  color: var(--card);
+  color: #fff;
   background: var(--accent);
 }
 
@@ -163,7 +162,7 @@ nav {
 }
 
 .sidebar-value {
-  color: var(--text);
+  color: var(--ink);
 }
 
 .sidebar-card h3 {
@@ -187,7 +186,7 @@ nav {
 
 footer {
   color: var(--muted);
-  border-top-color: var(--border);
+  border-top-color: var(--line);
   font: .65rem/1.8 "Courier New", monospace;
 }
 
@@ -197,9 +196,10 @@ footer {
   left: 10px;
   z-index: 101;
   padding: 12px 18px;
-  background: var(--text);
-  color: var(--bg);
+  background: var(--ink);
+  color: var(--on-ink);
   transform: translateY(-180%);
+  transition: transform var(--dur-micro) var(--ease-out);
 }
 
 .skip-link:focus {
@@ -210,9 +210,51 @@ footer {
   padding: 20px 0;
 }
 
+.project-hero .container,
+.main-project-image,
+.project-layout {
+  animation: detail-in var(--dur-reveal) var(--ease-out) both;
+}
+
+.main-project-image {
+  animation-delay: 60ms;
+}
+
+.project-layout {
+  animation-delay: 120ms;
+}
+
+@keyframes detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.tech-tag,
+.role-box,
+.features-list li,
+.technical-box,
+.challenge-card,
+.process-step,
+.sidebar-card {
+  border-color: var(--line);
+}
+
+.role-box,
+.technical-box {
+  border-left: 3px solid var(--accent);
+}
+
 @media (min-width: 700px) {
   .container {
     width: min(100% - 64px, var(--max-width));
+  }
+}
+
+@media (min-width: 760px) {
+  .logo {
+    font-size: 1.55rem;
   }
 }
 
@@ -223,14 +265,64 @@ footer {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+/* Experience documentation */
+.proof-item {
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
 
-  *,
-  *::before,
-  *::after {
-    transition: none !important;
-  }
+.proof-link {
+  display: block;
+  width: 100%;
+}
+
+.proof-item figcaption,
+.detail-section .proof-empty,
+.proof-missing {
+  color: var(--muted);
+  font: .68rem/1.6 var(--mono);
+  letter-spacing: .04em;
+}
+
+.detail-section .proof-empty {
+  grid-column: 1 / -1;
+  padding: 22px;
+  border: 1px dashed var(--line);
+}
+
+/* PDF documentation: inline viewer or a document card, plus an open link. */
+.proof-frame,
+.proof-sheet {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.proof-sheet {
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+}
+
+.proof-sheet span {
+  padding: 6px 10px;
+  border: 1px solid var(--accent);
+  color: var(--accent-ink);
+  font: .7rem var(--mono);
+  letter-spacing: .12em;
+}
+
+.proof-open {
+  color: var(--ink);
+  font-size: .78rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
+.proof-open:hover {
+  color: var(--accent-ink);
 }

@@ -8,13 +8,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#f0e7d8">
+  <meta name="theme-color" content="#ffffff">
+  <script>
+    (function () { var s; try { s = localStorage.getItem("portorio-theme"); } catch (e) { } var t = s === "dark" || s === "light" ? s : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); document.documentElement.dataset.theme = t; document.querySelector('meta[name="theme-color"]').content = t === "dark" ? "#0b0b0b" : "#ffffff"; })();
+  </script>
   <meta name="description"
     content="Project liner notes from Rio Rasyha Syadzily's developer discography: the ideas, tools, and work behind each project.">
 
   <title>Project Details | RIO</title>
   <link rel="icon" href="assets/record.svg" type="image/svg+xml">
 
+  <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/detail-base.css">
 
   <link rel="stylesheet" href="css/detail.css">
@@ -35,9 +39,12 @@
         <img src="assets/record.svg" width="29" height="29" alt="">PortoRio
       </a>
 
-      <a href="index.html#projects" class="back-button">
-        Back to Projects
-      </a>
+      <div class="nav-actions">
+        <a href="index.html#projects" class="back-button">
+          Back to Projects
+        </a>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Dark theme" aria-pressed="false" title="Toggle dark theme" hidden><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 1.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/><circle class="disc-dot" cx="10" cy="10" r="2.2"/></svg></button>
+      </div>
 
     </div>
   </nav>

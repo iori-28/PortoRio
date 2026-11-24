@@ -4,6 +4,9 @@
   const homePath = new URL("index.html", base).pathname;
   const detailPath = new URL("detail_PJ.html", base).pathname;
   const isDetail = (url) => url.pathname === detailPath;
+  const experiencePath = new URL("detail_exp.html", base).pathname;
+  const isExperience = (url) => url.pathname === experiencePath;
+  const pageFiles = { home: "index.html", detail: "detail_PJ.html", experience: "detail_exp.html" };
   const isHome = (url) => url.pathname === homePath || url.pathname === base.pathname;
   const loadScript = (file) => new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -12,6 +15,37 @@
     script.onerror = reject;
     document.head.append(script);
   });
+
+  // Theme: the inline <head> script resolves the first paint; this keeps it in sync afterwards.
+  const THEME_KEY = "portorio-theme";
+  const root = document.documentElement;
+  const systemDark = matchMedia("(prefers-color-scheme: dark)");
+  const savedTheme = () => {
+    try {
+      const value = localStorage.getItem(THEME_KEY);
+      return value === "dark" || value === "light" ? value : null;
+    } catch { return null; }
+  };
+  const syncThemeToggles = () => document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.hidden = false;
+    button.setAttribute("aria-pressed", String(root.dataset.theme === "dark"));
+  });
+  const applyTheme = (theme) => {
+    root.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0b0b0b" : "#ffffff");
+    syncThemeToggles();
+  };
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest?.("[data-theme-toggle]")) return;
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* Preference simply won't persist. */ }
+    if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(() => applyTheme(next));
+    else applyTheme(next);
+  });
+  systemDark.addEventListener("change", () => { if (!savedTheme()) applyTheme(systemDark.matches ? "dark" : "light"); });
+  applyTheme(savedTheme() || root.dataset.theme || (systemDark.matches ? "dark" : "light"));
+  // Shared stylesheets stay enabled across in-app navigation.
+  const sharedStyles = /\/(playback|theme)\.css$/;
 
   function mountControls(engine) {
     const lifetime = new AbortController();
@@ -24,12 +58,18 @@
     const status = controls.querySelector("[data-audio-status]");
     const arm = document.getElementById("tonearm-body");
     const spectrum = controls.querySelector("[data-spectrum]");
+    // Thin, rounded bars mirrored around the centre line; quiet bars fade back.
+    const paintBar = (bar, level) => {
+      bar.setAttribute("height", level.toFixed(2));
+      bar.setAttribute("y", ((48 - level) / 2).toFixed(2));
+      bar.setAttribute("fill-opacity", (.35 + .65 * Math.min(1, (level - 4) / 28)).toFixed(2));
+    };
     const bars = Array.from({ length: 24 }, (_, index) => {
       const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      bar.setAttribute("x", String(index * 10 + 2));
-      bar.setAttribute("y", "44");
-      bar.setAttribute("width", "6");
-      bar.setAttribute("height", "4");
+      bar.setAttribute("x", String(index * 10 + 3.5));
+      bar.setAttribute("width", "3");
+      bar.setAttribute("rx", "1.5");
+      paintBar(bar, 4);
       spectrum?.append(bar);
       return bar;
     });
@@ -38,11 +78,29 @@
     let frequencies;
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
     let frame = 0;
+    let idle = 0;
     let angle = -16;
+    let drawnAngle = Infinity;
     let lastTime = 0;
+    let onScreen = true;
+    const schedule = () => { if (!frame && !lifetime.signal.aborted) frame = requestAnimationFrame(draw); };
+    // The arm and spectrum only matter while visible: skip frames when scrolled away.
+    let visibility;
+    if (typeof IntersectionObserver === "function") {
+      // Callbacks only list targets whose visibility changed, so track each one.
+      const visible = new Set();
+      visibility = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => visible[entry.isIntersecting ? "add" : "delete"](entry.target));
+        onScreen = visible.size > 0;
+        if (onScreen) { lastTime = 0; schedule(); }
+      });
+      visibility.observe(controls);
+      if (arm) visibility.observe(arm.ownerSVGElement);
+    }
     const draw = (now) => {
       frame = 0;
-      if (document.hidden || lifetime.signal.aborted) return;
+      clearTimeout(idle);
+      if (document.hidden || lifetime.signal.aborted || !onScreen) return;
       const engaged = ["starting", "playing", "scratching"].includes(engine.state);
       const progress = engine.duration ? engine.currentTime / engine.duration : 0;
       const target = engaged ? 12 + progress * 16 : -16;
@@ -50,7 +108,11 @@
       lastTime = now;
       const reduced = motion.matches;
       angle = reduced ? target : angle + (target - angle) * (1 - Math.exp(-7 * dt));
-      arm?.setAttribute("transform", `rotate(${angle} 63 25)`);
+      // Each write re-renders the filtered SVG; skip sub-pixel changes.
+      if (arm && Math.abs(angle - drawnAngle) > .03) {
+        drawnAngle = angle;
+        arm.setAttribute("transform", `rotate(${angle.toFixed(2)} 63 25)`);
+      }
       const live = !reduced && ["playing", "scratching"].includes(engine.state) && engine.analyser;
       if (live) {
         frequencies ||= new Uint8Array(engine.analyser.frequencyBinCount);
@@ -69,13 +131,23 @@
           const end = Math.min(128, Math.max(start + 1, Math.ceil(Math.pow(128, (index + 1) / bars.length))));
           for (let bin = start; bin < end; bin++) energy = Math.max(energy, frequencies[bin]);
         }
-        const height = 4 + energy / 255 * 44;
-        levels[index] = reduced ? 4 : levels[index] + (height - levels[index]) * (1 - Math.exp(-18 * dt));
+        // Tilt toward the highs and soften the curve so saturated bass bins don't
+        // flatten into a solid wall of full-height bars.
+        const tilt = .7 + .6 * index / Math.max(1, bars.length - 1);
+        const height = 4 + Math.pow(Math.min(1, energy / 255 * tilt), 1.8) * 44;
+        const previous = levels[index];
+        levels[index] = reduced ? 4 : previous + (height - previous) * (1 - Math.exp(-18 * dt));
         if (Math.abs(levels[index] - 4) > .05) settling = true;
-        bar.setAttribute("height", levels[index].toFixed(2));
-        bar.setAttribute("y", (48 - levels[index]).toFixed(2));
+        // Only touch the DOM when the rendered value actually changes.
+        const drawn = levels[index].toFixed(2);
+        if (bar.dataset.h === drawn) return;
+        bar.dataset.h = drawn;
+        paintBar(bar, levels[index]);
       });
-      if (live || settling || (arm && (engaged || Math.abs(angle - target) > .02))) frame = requestAnimationFrame(draw);
+      if (live || settling || Math.abs(angle - target) > .02) schedule();
+      // While engaged without a live spectrum (e.g. reduced motion), the arm only
+      // drifts with track progress: check about once a second instead of every frame.
+      else if (arm && engaged) idle = setTimeout(schedule, 1000);
     };
     const update = () => {
       const active = ["loading", "starting", "playing", "scratching"].includes(engine.state);
@@ -87,7 +159,8 @@
       retry.hidden = engine.state !== "error";
       status.textContent = `${engine.tracks[engine.section]?.sectionTitle || "Record"} · ${engine.message}`;
       controls.dataset.playback = engine.state;
-      if (!frame) frame = requestAnimationFrame(draw);
+      document.body.dataset.playback = engine.state;
+      schedule();
     };
     let resizeObserver;
     if (responsiveSpectrum) {
@@ -120,14 +193,14 @@
         }
         spectrum.setAttribute("viewBox", `0 0 ${width} 48`);
         const pitch = width / count;
-        const barWidth = Math.min(6, pitch * .6);
+        const barWidth = Math.min(3, pitch * .4);
         bars.forEach((bar, index) => {
           bar.setAttribute("x", String(index * pitch + (pitch - barWidth) / 2));
           bar.setAttribute("width", String(barWidth));
-          bar.setAttribute("height", levels[index].toFixed(2));
-          bar.setAttribute("y", (48 - levels[index]).toFixed(2));
+          bar.setAttribute("rx", String(barWidth / 2));
+          paintBar(bar, levels[index]);
         });
-        if (!frame) frame = requestAnimationFrame(draw);
+        schedule();
       };
       resizeSpectrum();
       if (typeof ResizeObserver === "function") {
@@ -142,7 +215,7 @@
     document.addEventListener("visibilitychange", update, { signal: lifetime.signal });
     motion.addEventListener("change", update, { signal: lifetime.signal });
     update();
-    return () => { lifetime.abort(); resizeObserver?.disconnect(); cancelAnimationFrame(frame); };
+    return () => { lifetime.abort(); resizeObserver?.disconnect(); visibility?.disconnect(); cancelAnimationFrame(frame); clearTimeout(idle); };
   }
 
   function mountCredits(engine) {
@@ -272,7 +345,7 @@
   }
 
   async function initialize() {
-    await Promise.all(["audio-engine.js", "index.js", "detail.js"].map(loadScript));
+    await Promise.all(["audio-engine.js", "index.js", "detail.js", "detail-exp.js"].map(loadScript));
     const engine = window.portorioAudio;
     let disposePage = () => { };
     let disposeControls = () => { };
@@ -282,17 +355,25 @@
     let current = new URL(location.href);
     const templates = new Map();
     const stylesheetSets = new Map();
-    const pageKey = (url) => isDetail(url) ? "detail" : "home";
-    stylesheetSets.set(pageKey(current), [...document.querySelectorAll('link[rel="stylesheet"]')].filter((link) => !link.href.endsWith("/playback.css")));
+    const pageKey = (url) => isDetail(url) ? "detail" : isExperience(url) ? "experience" : "home";
+    // Both detail pages share one stylesheet set.
+    const styleKey = (key) => key === "home" ? "home" : "detail";
+    stylesheetSets.set(styleKey(pageKey(current)), [...document.querySelectorAll('link[rel="stylesheet"]')].filter((link) => !sharedStyles.test(link.href)));
 
     function mount() {
-      if (isDetail(new URL(location.href))) {
+      const here = new URL(location.href);
+      if (isDetail(here)) {
         engine.select("projects");
         window.mountPortorioDetail();
+        disposePage = () => { };
+      } else if (isExperience(here)) {
+        engine.select("experience");
+        window.mountPortorioExperience();
         disposePage = () => { };
       } else disposePage = window.mountPortorioHome();
       disposeControls = mountControls(engine);
       disposeCredits = mountCredits(engine);
+      syncThemeToggles();
     }
     async function navigate(url, push = true) {
       const token = ++navigation;
@@ -308,14 +389,15 @@
         let template = templates.get(key);
         if (!template) {
           request = new AbortController();
-          const response = await fetch(new URL(key === "home" ? "index.html" : "detail_PJ.html", base), { signal: request.signal });
+          const response = await fetch(new URL(pageFiles[key], base), { signal: request.signal });
           if (!response.ok) throw new Error(`Page HTTP ${response.status}`);
           template = new DOMParser().parseFromString(await response.text(), "text/html");
           if (token !== navigation) return;
           templates.set(key, template);
         }
-        if (!stylesheetSets.has(key)) {
-          const links = [...template.querySelectorAll('link[rel="stylesheet"]')].filter((link) => !link.getAttribute("href").endsWith("/playback.css"));
+        const styles = styleKey(key);
+        if (!stylesheetSets.has(styles)) {
+          const links = [...template.querySelectorAll('link[rel="stylesheet"]')].filter((link) => !sharedStyles.test(link.getAttribute("href")));
           const loaded = links.map((original) => {
             const link = original.cloneNode(true);
             link.href = new URL(original.getAttribute("href"), base);
@@ -329,8 +411,8 @@
             };
           });
           await Promise.all(loaded.map((item) => item.ready));
-          if (stylesheetSets.has(key)) loaded.forEach((item) => item.link.remove());
-          else stylesheetSets.set(key, loaded.map((item) => item.link));
+          if (stylesheetSets.has(styles)) loaded.forEach((item) => item.link.remove());
+          else stylesheetSets.set(styles, loaded.map((item) => item.link));
         }
         if (token !== navigation) return;
         const body = document.importNode(template.body, true);
@@ -340,14 +422,14 @@
         disposePage();
         if (push) history.pushState(null, "", url);
         current = url;
-        for (const [name, links] of stylesheetSets) links.forEach((link) => { link.media = name === key ? "all" : "not all"; });
+        for (const [name, links] of stylesheetSets) links.forEach((link) => { link.media = name === styles ? "all" : "not all"; });
         document.body.replaceWith(body);
         document.title = template.title;
         const description = document.querySelector('meta[name="description"]');
         if (description) description.content = template.querySelector('meta[name="description"]')?.content || "";
         mount();
         window.scrollTo({ top: 0, behavior: "instant" });
-        const heading = isDetail(url) ? document.querySelector("h1") : document.querySelector(".record-panel:not([hidden]) h2");
+        const heading = isDetail(url) || isExperience(url) ? document.querySelector("h1") : document.querySelector(".record-panel:not([hidden]) h2");
         heading?.setAttribute("tabindex", "-1");
         heading?.focus({ preventScroll: true });
       } catch (error) {
@@ -373,7 +455,7 @@
       const anchor = event.target.closest("a[href]");
       if (!anchor || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || anchor.download || anchor.dataset.reload || (anchor.target && anchor.target !== "_self")) return;
       const url = new URL(anchor.href);
-      if (url.origin !== location.origin || (!isHome(url) && !isDetail(url))) return;
+      if (url.origin !== location.origin || (!isHome(url) && !isDetail(url) && !isExperience(url))) return;
       if (url.pathname === location.pathname && url.search === location.search && anchor.getAttribute("href").startsWith("#")) {
         navigation++;
         request?.abort();

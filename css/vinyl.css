@@ -1,32 +1,35 @@
 /* Sleeve artwork and record rendering are independent of page layout. */
+/* Sleeves and labels are physical objects: their palette is fixed across themes. */
 [data-record="home"] {
-  --label: #b9583d;
-  --label-ink: #fff2dc;
+  --label: #dc143c;
+  --label-ink: #ffffff;
 }
 
 [data-record="projects"] {
-  --label: #6f7e6a;
-  --label-ink: #fff8e7;
+  --label-ring: #dc143c;
+  --label: #111111;
+  --label-ink: #f2f2f2;
 }
 
 [data-record="skills"] {
-  --label: #ddb35e;
-  --label-ink: #302b20;
+  --label: #f0f0f0;
+  --label-ink: #111111;
 }
 
 [data-record="studies"] {
-  --label: #718892;
-  --label-ink: #fff8e7;
+  --label: #6b6b6b;
+  --label-ink: #ffffff;
 }
 
 [data-record="experience"] {
-  --label: #8a6765;
-  --label-ink: #fff5e1;
+  --label-ring: #dc143c;
+  --label: #262626;
+  --label-ink: #f2f2f2;
 }
 
 [data-record="contact"] {
-  --label: #d18a61;
-  --label-ink: #30251e;
+  --label: #e4e4e4;
+  --label-ink: #111111;
 }
 
 .sleeve-art {
@@ -38,27 +41,31 @@
   overflow: hidden;
   background: var(--label);
   color: var(--label-ink);
-  box-shadow: 1px 2px 3px #26252025, inset 1px 0 #ffffff45;
-  transition: transform .2s, box-shadow .2s;
+  box-shadow: 1px 2px 3px var(--shadow), inset 1px 0 #ffffff45;
+  transition: transform var(--dur-micro) var(--ease-out);
 }
 
 .sleeve-art::after {
   content: "";
   position: absolute;
   inset: 0;
-  border: 1px solid #26252020;
+  border: 1px solid #00000024;
   box-shadow: inset 3px 0 0 #ffffff0a, inset 5px 0 0 #00000008;
   pointer-events: none;
 }
 
-.sleeve:hover .sleeve-art,
+@media (hover: hover) {
+  .sleeve:hover .sleeve-art {
+    transform: rotate(-4deg) translateY(-3px);
+  }
+}
+
 .sleeve:focus-visible .sleeve-art {
   transform: rotate(-4deg) translateY(-3px);
-  box-shadow: 3px 5px 9px #26252024;
 }
 
 .sleeve[aria-current] .sleeve-art {
-  outline: 1px solid var(--ink);
+  outline: 1px solid var(--accent);
   outline-offset: 4px;
 }
 
@@ -87,7 +94,7 @@
 .art-home .art-shape {
   width: 68%;
   height: 68%;
-  border: 12px solid #f6d0a1;
+  border: 12px solid #ffffff;
   border-radius: 50%;
   top: 14%;
   left: 39%;
@@ -98,7 +105,7 @@
   height: 67%;
   top: 14%;
   left: 33%;
-  background: repeating-linear-gradient(90deg, #e7e4ce 0 9px, transparent 9px 14px);
+  background: repeating-linear-gradient(90deg, #4a4a4a 0 9px, transparent 9px 14px);
   transform: skewY(-21deg);
 }
 
@@ -108,17 +115,17 @@
   top: 13%;
   right: 9%;
   border-radius: 50%;
-  background: repeating-linear-gradient(0deg, #57492d 0 2px, transparent 2px 7px);
+  background: repeating-linear-gradient(0deg, #b0b0b0 0 2px, transparent 2px 7px);
 }
 
 .art-studies .art-shape {
   width: 66%;
   height: 66%;
-  border: 1px solid #e6e9d8;
+  border: 1px solid #e6e6e6;
   border-radius: 50% 50% 0 0;
   top: 15%;
   left: 33%;
-  box-shadow: inset 8px 0 #e6e9d8, inset 14px 0 #718892, inset 22px 0 #e6e9d8;
+  box-shadow: inset 8px 0 #e6e6e6, inset 14px 0 #6b6b6b, inset 22px 0 #dc143c;
   transform: rotate(18deg);
 }
 
@@ -126,11 +133,10 @@
   width: 48%;
   height: 48%;
   border-radius: 50%;
-  background: #f0d8bb;
+  background: #dc143c;
   top: 18%;
   left: 23%;
-  box-shadow: 20px 10px 0 #b7a297;
-  mix-blend-mode: screen;
+  box-shadow: 20px 10px 0 #8c8c8c;
 }
 
 .art-contact .art-shape {
@@ -138,7 +144,7 @@
   height: 68%;
   right: -6%;
   top: 13%;
-  background: #f1dbbc;
+  background: #dc143c;
   clip-path: polygon(50% 0, 60% 34%, 85% 15%, 66% 40%, 100% 50%, 66% 60%, 85% 85%, 60% 66%, 50% 100%, 40% 66%, 15% 85%, 34% 60%, 0 50%, 34% 40%, 15% 15%, 40% 34%);
 }
 
@@ -154,7 +160,7 @@
   position: absolute;
   width: 17px;
   height: 17px;
-  border-color: var(--line);
+  border-color: var(--accent);
   border-style: solid;
 }
 
@@ -176,10 +182,10 @@
   height: 88%;
   left: 3%;
   top: 6%;
-  border: 1px solid #c2b6a4;
+  border: 1px solid var(--platter-edge);
   border-radius: 50%;
-  background: #d6cbb8;
-  box-shadow: 0 8px 25px #51422b12, inset 0 0 0 5px #e6dccb;
+  background: var(--platter);
+  box-shadow: 0 8px 25px var(--shadow), inset 0 0 0 5px var(--platter-ring);
 }
 
 .record-motion {
@@ -196,6 +202,12 @@
   height: 100%;
   border-radius: 50%;
   outline-offset: 7px;
+  /* The drop shadow lives on the static surface so it never rotates or repaints with the disc. */
+  box-shadow: 3px 9px 14px var(--shadow), 0 0 0 1px #ffffff10;
+  /* A rotating square box sticks its corners out past the viewport on narrow
+     screens, toggling a horizontal scrollbar while the record spins. Clip the
+     disc to its own circle (outline and shadow are unaffected). */
+  overflow: clip;
 }
 
 .enhanced .record-surface {
@@ -219,8 +231,13 @@
   position: relative;
   border-radius: 50%;
   background: #191a17;
-  border: 2px solid #22221e;
-  box-shadow: 3px 9px 12px #26252038, inset 0 0 0 3px #11120f, inset 0 0 0 5px #35362f;
+  border: 2px solid #1e1e1e;
+  box-shadow: inset 0 0 0 3px #0f0f0f, inset 0 0 0 5px #333333;
+}
+
+/* One stable compositor layer: the grooves rasterise once and rotation stays on the GPU. */
+.enhanced .record {
+  will-change: transform;
 }
 
 .record::before {
@@ -228,16 +245,16 @@
   position: absolute;
   inset: 2%;
   border-radius: 50%;
-  background: repeating-radial-gradient(circle, #3b3c3430 0, #3b3c3430 .6px, #10110e80 1px, #10110e80 2px, #34352d40 2.6px, transparent 3.4px), conic-gradient(from -30deg, transparent 0deg, #ffffff12 30deg, transparent 65deg, #ffffff03 110deg, #ffffff20 150deg, transparent 185deg, #ffffff04 245deg, #ffffff1b 300deg, transparent 345deg);
-  box-shadow: inset 0 0 0 14px #13141055;
+  background: repeating-radial-gradient(circle, #3a3a3a30 0, #3a3a3a30 .6px, #0f0f0f80 1px, #0f0f0f80 2px, #33333340 2.6px, transparent 3.4px), conic-gradient(from -30deg, transparent 0deg, #ffffff12 30deg, transparent 65deg, #ffffff03 110deg, #ffffff20 150deg, transparent 185deg, #ffffff04 245deg, #ffffff1b 300deg, transparent 345deg);
+  box-shadow: inset 0 0 0 14px #12121255;
 }
 
 .record::after {
   content: "";
   position: absolute;
   inset: 25%;
-  border: 1px solid #76766a40;
-  box-shadow: 0 0 0 3px #11120e70;
+  border: 1px solid #77777740;
+  box-shadow: 0 0 0 3px #10101070;
   border-radius: 50%;
   pointer-events: none;
 }
@@ -251,7 +268,8 @@
   border-radius: 50%;
   color: var(--label-ink);
   background: var(--label);
-  box-shadow: 0 0 0 4px #10110d, inset 0 0 0 1px #ffffff35;
+  /* Dark labels get a thin crimson ring so they read against the vinyl. */
+  box-shadow: 0 0 0 4px #0f0f0f, inset 0 0 0 1px #ffffff35, inset 0 0 0 3px var(--label-ring, transparent);
   text-align: center;
   container-type: inline-size;
 }
@@ -323,8 +341,8 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #dad5c7;
-  border: 2px solid #24241e;
+  background: #d9d9d9;
+  border: 2px solid #1e1e1e;
   box-shadow: 0 1px 2px #0008, inset 1px 1px #ffffffe0;
   pointer-events: none;
 }
@@ -337,7 +355,32 @@
   top: 4%;
   z-index: 2;
   pointer-events: none;
-  filter: drop-shadow(3px 4px 2px #26252024);
+  filter: drop-shadow(3px 4px 2px var(--shadow));
+}
+
+.tonearm .arm-base {
+  fill: var(--arm-base);
+  stroke: var(--arm-base-edge);
+}
+
+.tonearm .arm-pivot {
+  fill: var(--arm-pivot);
+}
+
+.tonearm .arm-tube {
+  stroke: var(--arm-tube);
+}
+
+.tonearm .arm-tube-hi {
+  stroke: var(--arm-tube-hi);
+}
+
+.tonearm .arm-head {
+  fill: var(--arm-head);
+}
+
+.tonearm .arm-stylus {
+  stroke: var(--accent);
 }
 
 .deck-signature {
@@ -346,11 +389,6 @@
   left: 0;
   font-size: .52rem;
   color: var(--muted);
-}
-
-.record-surface.is-moving .record,
-.record-surface.is-dragging .record {
-  will-change: transform;
 }
 
 @media (min-width: 600px) {

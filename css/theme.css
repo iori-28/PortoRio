@@ -1,0 +1,206 @@
+/* PortoRio design tokens — monochrome foundation with a crimson accent.
+   Shared by every page and never media-toggled during in-app navigation. */
+:root {
+  color-scheme: light;
+
+  /* Monochrome foundation (light) */
+  --bg: #ffffff;
+  --surface: #f4f4f4;
+  --surface-2: #e9e9e9;
+  --ink: #0b0b0b;
+  --muted: #5a5a5a;
+  --line: #dadada;
+  --line-strong: #0b0b0b;
+  --on-ink: #ffffff;
+  --shadow: rgb(0 0 0 / .12);
+  --backdrop: rgb(0 0 0 / .6);
+
+  /* Crimson accent: identical hue in both themes.
+     --accent decorates (fills, borders, indicators); --accent-ink is tuned for small text contrast. */
+  --accent: #dc143c;
+  --accent-ink: #b3102f;
+
+  /* Turntable hardware */
+  --platter: #ececec;
+  --platter-edge: #cfcfcf;
+  --platter-ring: #f7f7f7;
+  --arm-base: #d4d4d4;
+  --arm-base-edge: #9a9a9a;
+  --arm-pivot: #1c1c1c;
+  --arm-tube: #7a7a7a;
+  --arm-tube-hi: #e4e4e4;
+  --arm-head: #1c1c1c;
+
+  /* Type */
+  --display: Georgia, "Times New Roman", serif;
+  --body: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --mono: "Courier New", ui-monospace, monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(.22, .7, .25, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --dur-micro: 180ms;
+  --dur-ui: 280ms;
+  --dur-reveal: 480ms;
+
+  --header-h: 60px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0b0b;
+  --surface: #151515;
+  --surface-2: #1f1f1f;
+  --ink: #f3f3f3;
+  --muted: #a6a6a6;
+  --line: #2b2b2b;
+  --line-strong: #f3f3f3;
+  --on-ink: #0b0b0b;
+  --shadow: rgb(0 0 0 / .5);
+  --backdrop: rgb(0 0 0 / .75);
+  --accent-ink: #f2334f;
+
+  --platter: #191919;
+  --platter-edge: #303030;
+  --platter-ring: #212121;
+  --arm-base: #3a3a3a;
+  --arm-base-edge: #555555;
+  --arm-pivot: #0b0b0b;
+  --arm-tube: #8c8c8c;
+  --arm-tube-hi: #cfcfcf;
+  --arm-head: #e8e8e8;
+}
+
+/* Without JavaScript the system preference still applies. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #0b0b0b;
+    --surface: #151515;
+    --surface-2: #1f1f1f;
+    --ink: #f3f3f3;
+    --muted: #a6a6a6;
+    --line: #2b2b2b;
+    --line-strong: #f3f3f3;
+    --on-ink: #0b0b0b;
+    --shadow: rgb(0 0 0 / .5);
+    --backdrop: rgb(0 0 0 / .75);
+    --accent-ink: #f2334f;
+    --platter: #191919;
+    --platter-edge: #303030;
+    --platter-ring: #212121;
+    --arm-base: #3a3a3a;
+    --arm-base-edge: #555555;
+    --arm-pivot: #0b0b0b;
+    --arm-tube: #8c8c8c;
+    --arm-tube-hi: #cfcfcf;
+    --arm-head: #e8e8e8;
+  }
+}
+
+@media (min-width: 760px) {
+  :root {
+    --header-h: 72px;
+  }
+}
+
+/* Page scrollbar: crimson thumb on a track that follows the theme background. */
+:root {
+  --scroll-thumb: var(--accent);
+  scrollbar-color: var(--scroll-thumb) var(--bg);
+}
+
+/* Engines without scrollbar-color (e.g. Safari) use the WebKit pseudo-elements. */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid var(--bg);
+    border-radius: 999px;
+    background: var(--scroll-thumb);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-ink);
+  }
+}
+
+/* Theme toggle — a tiny two-sided record. */
+.theme-toggle {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+.theme-toggle:active {
+  transform: scale(.94);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  transition: transform var(--dur-ui) var(--ease-out);
+}
+
+:root[data-theme="dark"] .theme-toggle svg {
+  transform: rotate(180deg);
+}
+
+/* Fixed half colours: only the rotation changes, so light mode reads
+   white-left / black-right and dark mode black-left / white-right. */
+.theme-toggle svg circle:first-child {
+  fill: #ffffff;
+}
+
+.theme-toggle svg path {
+  fill: #0b0b0b;
+}
+
+.theme-toggle .disc-dot {
+  fill: var(--accent);
+}
+
+/* Theme switch: a short crossfade where View Transitions are supported. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-ui);
+  animation-timing-function: var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

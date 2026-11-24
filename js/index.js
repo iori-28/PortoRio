@@ -9,8 +9,14 @@ window.mountPortorioHome = () => {
   const year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
   const navbar = document.getElementById("navbar");
-  const updateNavbar = () => navbar?.classList.toggle("scrolled", window.scrollY > 20);
-  listen(window, "scroll", updateNavbar, { passive: true });
+  let navbarFrame = 0;
+  const updateNavbar = () => {
+    navbarFrame = 0;
+    navbar?.classList.toggle("scrolled", window.scrollY > 20);
+  };
+  // Coalesce scroll events to at most one class check per frame.
+  listen(window, "scroll", () => { navbarFrame ||= requestAnimationFrame(updateNavbar); }, { passive: true });
+  lifetime.signal.addEventListener("abort", () => cancelAnimationFrame(navbarFrame));
   updateNavbar();
 
   class VinylController {
@@ -23,8 +29,19 @@ window.mountPortorioHome = () => {
       this.pointer = null;
       this.enabled = true;
       this.samples = [];
+      this.visible = true;
       this.tick = this.tick.bind(this);
       surface.tabIndex = 0;
+      // Spinning a record nobody can see wastes frames (notably on mobile, where the
+      // liner notes sit below the deck). Pause the loop off-screen; resume on return.
+      if (typeof IntersectionObserver === "function") {
+        const observer = new IntersectionObserver(([entry]) => {
+          this.visible = entry.isIntersecting;
+          if (this.visible) this.wake();
+        });
+        observer.observe(surface);
+        lifetime.signal.addEventListener("abort", () => observer.disconnect());
+      }
       listen(surface, "pointerdown", (event) => this.startDrag(event));
       listen(surface, "pointermove", (event) => this.moveDrag(event));
       listen(surface, "pointerup", (event) => this.endDrag(event));
@@ -147,6 +164,14 @@ window.mountPortorioHome = () => {
         this.stop();
         return;
       }
+      if (!this.visible) {
+        // Keep momentum state simple: settle immediately while hidden.
+        cancelAnimationFrame(this.frame);
+        this.frame = 0;
+        this.velocity = 0;
+        this.surface.classList.remove("is-moving");
+        return;
+      }
       const dt = Math.min(Math.max((now - this.lastFrameTime) / 1000, 0), .05);
       this.lastFrameTime = now;
       const target = engine.state === "playing" ? 200 : 0;
@@ -160,7 +185,7 @@ window.mountPortorioHome = () => {
     }
 
     wake() {
-      if (this.frame || this.pointer !== null || !this.enabled || document.hidden || motionPreference.matches) return;
+      if (this.frame || this.pointer !== null || !this.enabled || !this.visible || document.hidden || motionPreference.matches) return;
       if (engine.state !== "playing") return;
       this.lastFrameTime = performance.now();
       this.surface.classList.add("is-moving");
@@ -249,8 +274,10 @@ window.mountPortorioHome = () => {
       controller.setEnabled(state === "ready");
     }
 
+    let initialized = false;
     function showRecord(id) {
       const entry = records.get(id);
+      if (initialized) room.classList.add("animate-panels");
       // Labels, content, and accessible selection change in the same task.
       const restoreFocus = panels.some((panel) => panel.id !== id && panel.contains(document.activeElement));
       panels.forEach((panel) => { panel.hidden = panel.id !== id; });
@@ -409,6 +436,7 @@ window.mountPortorioHome = () => {
     listen(window, "pagehide", finishTransition);
     disposeCollection = () => { disposed = true; animation?.cancel(); controller.enabled = false; controller.stop(); };
     showRecord(active);
+    initialized = true;
     revealSleeve(active);
     document.body.classList.add("enhanced");
     document.getElementById("interaction-controls").hidden = false;
