@@ -326,3 +326,14 @@ footer {
 .proof-open:hover {
   color: var(--accent-ink);
 }
+
+/* Work in progress: a compact placeholder instead of artwork. */
+.main-project-image.is-pending {
+  height: auto;
+  padding: 44px 16px;
+  border-style: dashed;
+  background: transparent;
+  font: .7rem/1.6 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}

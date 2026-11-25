@@ -288,6 +288,35 @@ window.mountPortorioDetail = () => {
       }
     },
 
+    /* =================================================
+       FRESHU
+       ================================================= */
+    freshu: {
+
+      // Upcoming release: sections without data are hidden on the page.
+      // Remove `status` once FreshU ships.
+      status: "Upcoming",
+
+      category: "Full-Stack · Web & Mobile First",
+
+      title: "FreshU",
+
+      subtitle: "Personalized University Onboarding Platform",
+
+      // Add later: image: "assets/projects/freshu/home.png",
+
+      overview:
+        "FreshU is a personalized university onboarding platform for first- and second-year students. The platform provides tailored information, resources, and guidance to support students during their transition into university life.",
+
+      tech: [
+        "Laravel",
+        "PHP",
+        "PostgreSQL",
+        "Tailwind CSS",
+        "Vite",
+        "Laravel Sanctum"
+      ]
+    },
 
     /* =================================================
        EVENTSITE
@@ -545,7 +574,7 @@ window.mountPortorioDetail = () => {
     projectResult.textContent =
       project.result;
 
-    project.roles.forEach(function (role) {
+    (project.roles || []).forEach(function (role) {
 
       const roleBox =
         document.createElement("div");
@@ -580,7 +609,7 @@ window.mountPortorioDetail = () => {
       project.category;
 
     sidebarRole.textContent =
-      project.roles[0].title;
+      project.roles?.[0]?.title || project.roleTitle || "-";
 
 
     /* ================================================
@@ -609,6 +638,12 @@ window.mountPortorioDetail = () => {
 
       mainProjectImage.appendChild(image);
 
+    } else {
+
+      // No artwork yet (e.g. an upcoming release): a compact placeholder.
+      mainProjectImage.classList.add("is-pending");
+      mainProjectImage.textContent = project.status ? "In production" : "Project Image";
+
     }
 
 
@@ -616,7 +651,7 @@ window.mountPortorioDetail = () => {
        TECH STACK
        ================================================ */
 
-    project.tech.forEach(function (tech) {
+    (project.tech || []).forEach(function (tech) {
 
       const tag =
         document.createElement("span");
@@ -636,7 +671,7 @@ window.mountPortorioDetail = () => {
        FEATURES
        ================================================ */
 
-    project.features.forEach(function (feature) {
+    (project.features || []).forEach(function (feature) {
 
       const item =
         document.createElement("li");
@@ -653,7 +688,7 @@ window.mountPortorioDetail = () => {
        SCREENSHOTS
        ================================================ */
 
-    project.screenshots.forEach(function (screenshot) {
+    (project.screenshots || []).forEach(function (screenshot) {
 
       const wrapper =
         document.createElement("div");
@@ -702,7 +737,7 @@ window.mountPortorioDetail = () => {
        DEVELOPMENT PROCESS
        ================================================ */
 
-    project.process.forEach(function (step, index) {
+    (project.process || []).forEach(function (step, index) {
 
       const wrapper =
         document.createElement("div");
@@ -738,13 +773,13 @@ window.mountPortorioDetail = () => {
        LINKS
        ================================================ */
 
-    if (project.links.github) {
+    if (project.links?.github) {
 
       const github =
         document.createElement("a");
 
       github.href =
-        project.links.github;
+        project.links?.github;
 
       github.target =
         "_blank";
@@ -763,13 +798,13 @@ window.mountPortorioDetail = () => {
     }
 
 
-    if (project.links.demo) {
+    if (project.links?.demo) {
 
       const demo =
         document.createElement("a");
 
       demo.href =
-        project.links.demo;
+        project.links?.demo;
 
       demo.target =
         "_blank";
@@ -788,13 +823,13 @@ window.mountPortorioDetail = () => {
     }
 
 
-    if (project.links.documentation) {
+    if (project.links?.documentation) {
 
       const documentation =
         document.createElement("a");
 
       documentation.href =
-        project.links.documentation;
+        project.links?.documentation;
 
       documentation.target =
         "_blank";
@@ -811,6 +846,35 @@ window.mountPortorioDetail = () => {
       projectLinks.appendChild(documentation);
 
     }
+
+
+    /* ================================================
+       STATUS & EMPTY SECTIONS
+       ================================================ */
+
+    // An optional `status` (e.g. "Upcoming") marks work that isn't finished yet.
+    if (project.status) {
+      const status = document.createElement("span");
+      status.className = "status-tag";
+      status.textContent = project.status;
+      projectCategory.append(" ", status);
+    }
+
+    // Projects may omit any section; hide the ones without content.
+    const show = function (element, hasContent) {
+      const section = element.closest(".detail-section");
+      if (section) section.hidden = !hasContent;
+    };
+    show(projectOverview, project.overview);
+    show(projectTech, project.tech?.length);
+    show(projectRoles, project.roles?.length);
+    show(projectFeatures, project.features?.length);
+    show(projectScreenshots, project.screenshots?.length);
+    show(projectTechnical, project.technical);
+    show(projectChallenge, project.challenge || project.solution);
+    show(projectProcess, project.process?.length);
+    show(projectResult, project.result);
+    sidebarRole.closest(".sidebar-item").hidden = !(project.roles?.length || project.roleTitle);
 
   }
 

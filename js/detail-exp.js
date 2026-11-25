@@ -38,9 +38,12 @@ window.mountPortorioExperience = () => {
       period: "May — June 2026",
       overview: "Developed the Laravel, PHP, Tailwind CSS, and Bootstrap web application, contributed to the Ionic Angular mobile app, and presented the project to industry professionals.",
       highlights: [],
+      description: "Participated in the Technovision competition, where I developed a full-stack web application using Laravel, PHP, Tailwind CSS, and Bootstrap. I also contributed to the development of an Ionic Angular mobile app and presented the project to industry professionals.",
       proof: [
         { image: "assets/experiences/technovision/lead.jpeg", caption: "Rio" },
-        { image: "assets/experiences/technovision/sertificate.pdf", caption: "Certificate" }
+        { image: "assets/experiences/technovision/sertificate.pdf", caption: "Certificate" },
+        { image: "assets/experiences/technovision/classA.jpeg", caption: "Class A" },
+        { image: "assets/experiences/technovision/team.jpeg", caption: "Team Dartd" }
       ],
       related: { label: "Proculus project", href: "detail_PJ.html?project=proculus" }
     },
@@ -53,7 +56,12 @@ window.mountPortorioExperience = () => {
       period: "July 2026 — Present",
       overview: "Manage administration, documentation, correspondence, and organizational records to support internal activities.",
       highlights: [],
-      proof: []
+      proof: [
+        { image: "assets/experiences/bem/bem_Rio.jpeg", caption: "Pelantikan BEM & BLM FIK UBP 2026" },
+        { image: "assets/experiences/bem/bem_Rio3.jpeg", caption: "Pelantikan BEM & BLM FIK UBP 2026" },
+        { image: "assets/experiences/bem/bem_Rio2.jpeg", caption: "BEM FIK UBP 2026 dan DPM FIK" },
+        { image: "assets/experiences/bem/myself.jpg", caption: "Rio - PKKMB 2026" }
+      ]
     },
     inauguration: {
       category: "Event",
@@ -108,8 +116,52 @@ window.mountPortorioExperience = () => {
     }
   };
 
-  const id = new URLSearchParams(location.search).get("exp");
-  const entry = Object.hasOwn(experienceData, id) ? experienceData[id] : null;
+  /* Studies use the same page: detail_exp.html?study=<id>. Every field except
+     title is optional; empty rows and sections are hidden.
+
+       status:     "In progress" / "Upcoming" / "Completed" (shown as a label)
+       highlights: what you have learned so far
+       proof:      certificates, notes, screenshots (images or PDFs) */
+  const studyData = {
+    rails: {
+      status: "In progress",
+      category: "Learning list",
+      title: "Ruby on Rails",
+      subtitle: "Web application development",
+      focus: "Web app development",
+      overview: "Currently building Freshlio Finance with Ruby on Rails for web app development.",
+      highlights: [],
+      proof: []
+    },
+
+    yachiyo: {
+      status: "In progress",
+      category: "Learning list",
+      title: "Yachiyo GenAI",
+      subtitle: "Generative Artificial Intelligence",
+      focus: "Generative AI",
+      overview: "Currently building Yachiyo GenAI for generative artificial intelligence chatbots.",
+      highlights: [],
+      proof: []
+    }
+  };
+
+  const params = new URLSearchParams(location.search);
+  const study = params.has("study");
+  const id = study ? params.get("study") : params.get("exp");
+  const data = study ? studyData : experienceData;
+  const entry = Object.hasOwn(data, id) ? data[id] : null;
+  const copy = study ? {
+    kind: "Study", back: ["index.html#studies", "Back to Studies"], sidebar: "Study Information",
+    rows: [["Source", "organization"], ["Focus", "focus"], ["Period", "period"]],
+    highlights: "What I've learned", proof: "Notes & documentation",
+    empty: "Notes and documentation will be added as this study progresses."
+  } : {
+    kind: "Experience", back: ["index.html#experience", "Back to Experience"], sidebar: "Session Information",
+    rows: [["Organization", "organization"], ["Role", "role"], ["Period", "period"]],
+    highlights: "Highlights", proof: "Documentation",
+    empty: "Documentation for this session will be added soon."
+  };
   const $ = (elementId) => document.getElementById(elementId);
   const make = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -120,28 +172,39 @@ window.mountPortorioExperience = () => {
 
   const year = $("year");
   if (year) year.textContent = new Date().getFullYear();
+  const back = document.querySelector(".back-button");
+  if (back) { back.href = copy.back[0]; back.textContent = copy.back[1]; }
+  document.querySelector(".sidebar-card h3").textContent = copy.sidebar;
+  $("experienceHighlightsSection").querySelector("h2").textContent = copy.highlights;
+  $("experienceProof").closest(".detail-section").querySelector("h2").textContent = copy.proof;
+  const rowIds = ["sidebarOrganization", "sidebarRole", "sidebarPeriod"];
 
   if (!entry) {
-    document.title = "Experience Not Found | Rio Rasyha Syadzily";
+    document.title = `${copy.kind} Not Found | Rio Rasyha Syadzily`;
     $("experienceCategory").textContent = "Not found";
-    $("experienceTitle").textContent = "Experience Not Found";
-    $("experienceSubtitle").textContent = "The experience you are looking for does not exist.";
-    $("experienceOverview").textContent = "Return to the collection to browse every session.";
-    ["sidebarOrganization", "sidebarRole", "sidebarPeriod"].forEach((field) => { $(field).textContent = "-"; });
+    $("experienceTitle").textContent = `${copy.kind} Not Found`;
+    $("experienceSubtitle").textContent = `The ${copy.kind.toLowerCase()} you are looking for does not exist.`;
+    $("experienceOverview").textContent = "Return to the collection to browse everything.";
+    rowIds.forEach((field, index) => { $(field).textContent = "-"; $(field).previousElementSibling.textContent = copy.rows[index][0]; });
     $("experienceProof").replaceChildren(make("p", "proof-empty", "No documentation available."));
     return;
   }
 
   document.title = `${entry.title} | Rio Rasyha Syadzily`;
-  $("experienceCategory").textContent = `${entry.period} · ${entry.category}`;
+  $("experienceCategory").textContent = [entry.period, entry.category].filter(Boolean).join(" · ");
+  if (entry.status) $("experienceCategory").append(" ", make("span", "status-tag", entry.status));
   $("experienceTitle").textContent = entry.title;
-  $("experienceSubtitle").textContent = entry.subtitle;
-  $("experienceOverview").textContent = entry.overview;
-  $("sidebarOrganization").textContent = entry.organization;
-  $("sidebarRole").textContent = entry.role;
-  $("sidebarPeriod").textContent = entry.period;
+  $("experienceSubtitle").textContent = entry.subtitle || "";
+  $("experienceOverview").textContent = entry.overview || "";
+  $("experienceOverview").closest(".detail-section").hidden = !entry.overview;
+  rowIds.forEach((field, index) => {
+    const [label, key] = copy.rows[index];
+    $(field).previousElementSibling.textContent = label;
+    $(field).textContent = entry[key] || "";
+    $(field).closest(".sidebar-item").hidden = !entry[key];
+  });
 
-  if (entry.highlights.length) {
+  if (entry.highlights?.length) {
     $("experienceHighlightsSection").hidden = false;
     $("experienceHighlights").replaceChildren(...entry.highlights.map((text) => make("li", "", text)));
   }
@@ -173,8 +236,8 @@ window.mountPortorioExperience = () => {
   }
 
   const proof = $("experienceProof");
-  if (!entry.proof.length) {
-    proof.replaceChildren(make("p", "proof-empty", "Documentation for this session will be added soon."));
+  if (!entry.proof?.length) {
+    proof.replaceChildren(make("p", "proof-empty", copy.empty));
   } else {
     proof.replaceChildren(...entry.proof.map((item) => {
       if (/\.pdf$/i.test(item.image)) return renderPdf(item);

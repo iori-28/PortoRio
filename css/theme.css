@@ -204,3 +204,17 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Status label for unfinished work ("Upcoming", "In progress"); used on every page. */
+.status-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent-ink);
+  font: .62rem/1.6 var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}

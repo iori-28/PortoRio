@@ -81,6 +81,8 @@
     let idle = 0;
     let angle = -16;
     let drawnAngle = Infinity;
+    let dragAngle = null; // set while the visitor is moving the tonearm by hand
+    let heldAngle = null; // where a dropped arm waits while the track loads
     let lastTime = 0;
     let onScreen = true;
     const schedule = () => { if (!frame && !lifetime.signal.aborted) frame = requestAnimationFrame(draw); };
@@ -103,11 +105,11 @@
       if (document.hidden || lifetime.signal.aborted || !onScreen) return;
       const engaged = ["starting", "playing", "scratching"].includes(engine.state);
       const progress = engine.duration ? engine.currentTime / engine.duration : 0;
-      const target = engaged ? 12 + progress * 16 : -16;
+      const target = engaged ? 12 + progress * 16 : heldAngle !== null && engine.state === "loading" ? heldAngle : -16;
       const dt = Math.min((now - (lastTime || now)) / 1000, .1);
       lastTime = now;
       const reduced = motion.matches;
-      angle = reduced ? target : angle + (target - angle) * (1 - Math.exp(-7 * dt));
+      angle = dragAngle !== null ? dragAngle : reduced ? target : angle + (target - angle) * (1 - Math.exp(-7 * dt));
       // Each write re-renders the filtered SVG; skip sub-pixel changes.
       if (arm && Math.abs(angle - drawnAngle) > .03) {
         drawnAngle = angle;
@@ -150,6 +152,7 @@
       else if (arm && engaged) idle = setTimeout(schedule, 1000);
     };
     const update = () => {
+      if (engine.state !== "loading") heldAngle = null;
       const active = ["loading", "starting", "playing", "scratching"].includes(engine.state);
       play.disabled = active || engine.state === "error";
       play.textContent = engine.state === "blocked" ? "Start Music" : "▶ Play";
@@ -160,6 +163,7 @@
       status.textContent = `${engine.tracks[engine.section]?.sectionTitle || "Record"} · ${engine.message}`;
       controls.dataset.playback = engine.state;
       document.body.dataset.playback = engine.state;
+      arm?.ownerSVGElement.classList.toggle("is-engaged", active);
       schedule();
     };
     let resizeObserver;
@@ -209,6 +213,61 @@
       } else window.addEventListener("resize", resizeSpectrum, { signal: lifetime.signal });
     }
     play.addEventListener("click", () => void engine.play(), { signal: lifetime.signal });
+    // Hand-operated tonearm: swipe it onto the record to play, back off to stop;
+    // a tap toggles. Play/Stop buttons remain the accessible controls.
+    const armHits = arm ? [...arm.querySelectorAll(".arm-hit, .arm-hit-upper")] : [];
+    if (armHits.length) {
+      const svg = arm.ownerSVGElement;
+      let drag = null;
+      const pointerAngle = (event) => {
+        const matrix = svg.getScreenCTM();
+        const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+        return Math.atan2(point.y - 25, point.x - 63) * 180 / Math.PI;
+      };
+      const finish = (event, commit) => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const { moved } = drag;
+        const dropped = dragAngle ?? angle;
+        drag = null;
+        dragAngle = null;
+        svg.classList.remove("is-dragging");
+        const handle = event.currentTarget;
+        if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+        if (commit) {
+          const active = ["loading", "starting", "playing", "scratching"].includes(engine.state);
+          const onRecord = moved ? dropped > 2 : !active;
+          if (onRecord && !active) {
+            heldAngle = Math.max(4, Math.min(28, dropped));
+            void engine.play();
+          } else if (!onRecord && active) engine.stop();
+        }
+        lastTime = 0;
+        schedule();
+      };
+      for (const handle of armHits) {
+        handle.addEventListener("pointerdown", (event) => {
+          if (drag || !event.isPrimary || event.button !== 0) return;
+          event.preventDefault();
+          drag = { id: event.pointerId, start: pointerAngle(event), from: angle, x: event.clientX, y: event.clientY, moved: false };
+          try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* Capture is optional. */ }
+          svg.classList.add("is-dragging");
+        }, { signal: lifetime.signal });
+        handle.addEventListener("pointermove", (event) => {
+          if (!drag || event.pointerId !== drag.id) return;
+          if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 6) return;
+          drag.moved = true;
+          const delta = ((pointerAngle(event) - drag.start + 540) % 360) - 180;
+          dragAngle = Math.max(-20, Math.min(32, drag.from + delta));
+          schedule();
+        }, { signal: lifetime.signal });
+        // Belt and braces for browsers that still try to scroll: keep the touch
+        // gesture on the arm while it is being dragged.
+        handle.addEventListener("touchmove", (event) => { if (drag) event.preventDefault(); }, { passive: false, signal: lifetime.signal });
+        handle.addEventListener("pointerup", (event) => finish(event, true), { signal: lifetime.signal });
+        handle.addEventListener("pointercancel", (event) => finish(event, false), { signal: lifetime.signal });
+        handle.addEventListener("lostpointercapture", (event) => finish(event, true), { signal: lifetime.signal });
+      }
+    }
     retry.addEventListener("click", () => void engine.play(), { signal: lifetime.signal });
     stop.addEventListener("click", () => engine.stop(), { signal: lifetime.signal });
     engine.addEventListener("change", update, { signal: lifetime.signal });
@@ -367,7 +426,7 @@
         window.mountPortorioDetail();
         disposePage = () => { };
       } else if (isExperience(here)) {
-        engine.select("experience");
+        engine.select(here.searchParams.has("study") ? "studies" : "experience");
         window.mountPortorioExperience();
         disposePage = () => { };
       } else disposePage = window.mountPortorioHome();

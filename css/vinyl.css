@@ -383,6 +383,40 @@
   stroke: var(--accent);
 }
 
+/* Invisible, finger-sized grab area along the arm (enabled once JS runs). */
+.tonearm .arm-hit,
+.tonearm .arm-hit-upper {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 34;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.enhanced .tonearm .arm-hit,
+.enhanced .tonearm .arm-hit-upper {
+  pointer-events: stroke;
+  cursor: grab;
+}
+
+/* Lowered onto the record, only the upper tube (outside the record) lifts the arm; the rest
+   lets presses through so the whole record can still be scratched. */
+.enhanced .tonearm.is-engaged .arm-hit {
+  pointer-events: none;
+}
+
+/* touch-action is ignored on SVG shapes, so set it on the arm's <svg> box.
+   The svg itself has pointer-events: none, so this only affects touches that
+   land on the grab area. */
+.enhanced .tonearm {
+  touch-action: none;
+}
+
+.tonearm.is-dragging .arm-hit,
+.tonearm.is-dragging .arm-hit-upper {
+  cursor: grabbing;
+}
+
 .deck-signature {
   position: absolute;
   bottom: 0;
