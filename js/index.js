@@ -478,7 +478,132 @@ window.mountPortorioHome = () => {
     });
   }
 
+  // Business card: drag to turn it in 3D, like LinkedIn's card; on release it
+  // springs to the nearest face, carrying the finger's speed. A tap (or the
+  // keyboard button) turns it over. Only `transform` changes, once per frame.
+  function initializeBusinessCard() {
+    const card = document.getElementById("card-flip");
+    const button = document.querySelector(".card-flip-button");
+    const hint = document.querySelector(".card-hint");
+    if (!card || !button) return;
+    const front = card.querySelector(".card-front");
+    const back = card.querySelector(".card-back");
+    const DEG_PER_PX = .5;
+    let rx = 0;
+    let ry = 0;
+    let rz = 0; // only used briefly to spin an upside-down card upright
+    let drag = null;
+    let frame = 0;
+    const render = () => {
+      frame = 0;
+      card.style.transform = `rotateZ(${rz}deg) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+    };
+    const schedule = () => { frame ||= requestAnimationFrame(render); };
+    // The front faces the viewer while its normal points at them: cos(rx)·cos(ry) > 0.
+    const sync = () => {
+      const showingBack = Math.cos(rx * Math.PI / 180) * Math.cos(ry * Math.PI / 180) < 0;
+      button.setAttribute("aria-pressed", String(showingBack));
+      front.setAttribute("aria-hidden", String(showingBack));
+      back.setAttribute("aria-hidden", String(!showingBack));
+    };
+    const settle = (vx = 0, vy = 0) => {
+      // Project ~160 ms of momentum (capped so a hard flick adds at most about
+      // one extra half-turn), then land on the nearest face.
+      const snap = (angle, velocity) => Math.round((angle + Math.max(-1.2, Math.min(1.2, velocity)) * 160) / 180) * 180;
+      rx = snap(rx, vy);
+      ry = snap(ry, vx);
+      // With reduced motion there is no spring, so land upright straight away.
+      if (motionPreference.matches && upsideDown()) { rx -= 180; ry += 180; }
+      card.classList.add("is-settling");
+      cancelAnimationFrame(frame);
+      render();
+      sync();
+    };
+    // Tipped over the top (an odd number of half-turns on X) the face reads upside down.
+    const upsideDown = () => Math.abs(Math.round(rx / 180)) % 2 === 1;
+    // rotateX(180°) looks the same as rotateY(180°) + rotateZ(180°): switch to that
+    // form without animating, then turn Z back to 0, an in-plane spin to upright.
+    const rightSideUp = () => {
+      rx -= 180;
+      ry += 180;
+      rz = 180;
+      card.classList.remove("is-settling");
+      render();
+      void card.offsetWidth; // commit the identical-looking pose before animating
+      card.classList.add("is-righting");
+      rz = 0;
+      render();
+    };
+    const turnOver = () => { ry += 180; settle(); };
+    const end = (event, cancelled) => {
+      if (!drag || event.pointerId !== drag.id) return;
+      const { moved, ignored, vx, vy, lastTime } = drag;
+      drag = null;
+      card.classList.remove("is-dragging");
+      if (card.hasPointerCapture(event.pointerId)) card.releasePointerCapture(event.pointerId);
+      if (ignored) return;
+      if (!moved) { if (!cancelled) turnOver(); return; }
+      // Holding still before letting go means no fling.
+      const fresh = event.timeStamp - lastTime < 80;
+      settle(fresh ? vx : 0, fresh ? vy : 0);
+    };
+
+    button.hidden = false;
+    if (hint) hint.hidden = false;
+    // Prepare the 3D layers while the card is near the screen, so even the first
+    // turn is smooth; release them when it scrolls away.
+    if (typeof IntersectionObserver === "function") {
+      const observer = new IntersectionObserver(([entry]) => card.classList.toggle("is-near", entry.isIntersecting), { rootMargin: "300px 0px" });
+      observer.observe(card);
+      lifetime.signal.addEventListener("abort", () => observer.disconnect());
+    }
+    listen(card, "pointerdown", (event) => {
+      if (drag || !event.isPrimary || event.button !== 0) return;
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, rx, ry, lastX: event.clientX, lastY: event.clientY, lastTime: event.timeStamp, vx: 0, vy: 0, moved: false };
+      try { card.setPointerCapture(event.pointerId); } catch { /* Capture is optional. */ }
+    });
+    listen(card, "pointermove", (event) => {
+      if (!drag || drag.ignored || event.pointerId !== drag.id) return;
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (!drag.moved) {
+        if (Math.hypot(dx, dy) < 6) return;
+        // On touch, a mostly vertical start is a page scroll: leave the card alone.
+        if (event.pointerType !== "mouse" && Math.abs(dy) > Math.abs(dx)) {
+          drag.ignored = true;
+          return;
+        }
+        drag.moved = true;
+        card.classList.remove("is-settling", "is-righting");
+        card.classList.add("is-dragging");
+      }
+      ry = drag.ry + dx * DEG_PER_PX;
+      rx = drag.rx - dy * DEG_PER_PX;
+      const dt = Math.max(1, event.timeStamp - drag.lastTime);
+      // Smoothed angular velocity in degrees per millisecond.
+      drag.vx = drag.vx * .6 + ((event.clientX - drag.lastX) * DEG_PER_PX / dt) * .4;
+      drag.vy = drag.vy * .6 + (-(event.clientY - drag.lastY) * DEG_PER_PX / dt) * .4;
+      drag.lastX = event.clientX;
+      drag.lastY = event.clientY;
+      drag.lastTime = event.timeStamp;
+      schedule();
+    });
+    listen(card, "pointerup", (event) => end(event, false));
+    // A vertical swipe on touch hands the gesture to page scrolling.
+    listen(card, "pointercancel", (event) => end(event, true));
+    listen(card, "lostpointercapture", (event) => end(event, true));
+    listen(card, "transitionend", (event) => {
+      if (event.target !== card || event.propertyName !== "transform") return;
+      if (card.classList.contains("is-righting")) { card.classList.remove("is-righting"); return; }
+      card.classList.remove("is-settling");
+      if (!drag && upsideDown()) rightSideUp();
+    });
+    listen(button, "click", turnOver);
+    lifetime.signal.addEventListener("abort", () => cancelAnimationFrame(frame));
+  }
+
   initializeCollection();
   initializeSkills();
+  initializeBusinessCard();
   return () => { lifetime.abort(); disposeCollection(); };
 };

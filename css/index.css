@@ -1193,3 +1193,204 @@ body[data-playback="scratching"] .status-dot {
   bottom: 4px;
   font-size: .5rem;
 }
+
+/* Business card (Contact): a card that flips between its front (details) and
+   back (artwork), beside the LinkedIn QR. Only `transform` animates, so the flip
+   runs on the compositor and stays smooth on phones. */
+.business-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 22px 28px;
+  margin-top: 28px;
+}
+
+.card-stage {
+  flex: 1 1 260px;
+  min-width: 0;
+  perspective: 1200px;
+}
+
+/* Both faces share one grid cell, so the back always matches the front's size. */
+.card-flip {
+  display: grid;
+  transform-style: preserve-3d;
+}
+
+/* Drag to turn it in 3D (sideways on touch, any direction with a mouse); a
+   vertical swipe on a phone still scrolls the page (pan-y). */
+.enhanced .card-flip {
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-flip.is-dragging {
+  cursor: grabbing;
+}
+
+/* After release it springs to the nearest face; a compositor-run transition. */
+.card-flip.is-settling {
+  transition: transform 680ms cubic-bezier(.2, 1.25, .35, 1);
+}
+
+/* Landed upside down: a quick in-plane spin to stand upright. */
+.card-flip.is-righting {
+  transition: transform 460ms var(--ease-in-out);
+}
+
+.card-face img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.card-flip.is-near {
+  will-change: transform;
+}
+
+.card-face {
+  grid-area: 1 / 1;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Both sides are the real card artwork, so the card takes its proportions. */
+.card-flip {
+  aspect-ratio: 989 / 615;
+}
+
+.card-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-front {
+  position: relative;
+  background: #fff8e8;
+}
+
+/* A hairline edge drawn above the artwork so the cream card reads on white. */
+.card-front::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--line);
+  pointer-events: none;
+  transition: box-shadow var(--dur-micro) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .card-flip:hover .card-front::after {
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  background: #bf173a;
+}
+
+.card-label {
+  margin-bottom: 12px;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 20px;
+  margin-top: 10px;
+}
+
+.card-hint {
+  color: var(--muted);
+  font: .6rem/1.6 var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* Hidden until it receives keyboard focus. */
+.card-flip-button:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: nowrap;
+}
+
+.card-flip-button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: .66rem var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition: border-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+}
+
+.card-flip-button:hover,
+.card-flip-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.card-qr {
+  flex: 0 0 auto;
+  margin-inline: auto;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+/* The QR keeps its white tile in both themes so it stays scannable. */
+.card-qr img {
+  width: 168px;
+  height: auto;
+  padding: 8px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.card-qr-note {
+  color: var(--muted);
+  font: .6rem/1.6 var(--mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
+.card-qr-label {
+  color: var(--muted);
+}
+
+/* The QR block is itself a link to the profile (tap on phones, click on desktop). */
+.card-qr img {
+  transition: box-shadow var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+
+.card-qr:hover img,
+.card-qr:focus-visible img {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.card-qr:hover .card-qr-note,
+.card-qr:focus-visible .card-qr-note {
+  color: var(--accent-ink);
+}
+
+.card-qr:active img {
+  transform: scale(.98);
+}
