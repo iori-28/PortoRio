@@ -37,6 +37,8 @@ button {
 img {
   display: block;
   max-width: 100%;
+  /* Keep proportions when only a width applies (e.g. width/height attributes). */
+  height: auto;
 }
 
 button,

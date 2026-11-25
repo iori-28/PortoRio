@@ -1,6 +1,8 @@
 (() => {
   "use strict";
   const base = new URL("../", document.currentScript.src);
+  // The ?v= on app.js's own URL (cache-busting) is passed on to the scripts it loads.
+  const version = new URL(document.currentScript.src).search;
   const homePath = new URL("index.html", base).pathname;
   const detailPath = new URL("detail_PJ.html", base).pathname;
   const isDetail = (url) => url.pathname === detailPath;
@@ -10,7 +12,7 @@
   const isHome = (url) => url.pathname === homePath || url.pathname === base.pathname;
   const loadScript = (file) => new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = new URL(`js/${file}`, base);
+    script.src = new URL(`js/${file}${version}`, base);
     script.onload = resolve;
     script.onerror = reject;
     document.head.append(script);
@@ -45,7 +47,7 @@
   systemDark.addEventListener("change", () => { if (!savedTheme()) applyTheme(systemDark.matches ? "dark" : "light"); });
   applyTheme(savedTheme() || root.dataset.theme || (systemDark.matches ? "dark" : "light"));
   // Shared stylesheets stay enabled across in-app navigation.
-  const sharedStyles = /\/(playback|theme)\.css$/;
+  const sharedStyles = /\/(playback|theme)\.css(\?.*)?$/;
 
   function mountControls(engine) {
     const lifetime = new AbortController();
