@@ -204,16 +204,16 @@ window.mountPortorioDetail = () => {
 
     echoes: {
 
-      category: "Game Development · GEMASTIK XIX 2026",
+      category: "Team Project · GEMASTIK XIX 2026",
 
       title: "Echoes of Gaia: The Living World",
 
-      subtitle: "2D Game Development Project",
+      subtitle: "Competition Team Project · Team Leader",
 
       image: "assets/projects/echoes/proses.png",
 
       overview:
-        "Echoes of Gaia: The Living World is a 2D game development project created for the GEMASTIK XIX 2026 Game Development Division. The project focused on gameplay development, creative direction, visual presentation, and team-based development.",
+        "Echoes of Gaia: The Living World is a 2D team project built for GEMASTIK XIX 2026. As team leader, I set the core concept and creative direction, split the work across the team, and coordinated progress through the competition timeline.",
 
       tech: [
         "Unity",
@@ -279,7 +279,7 @@ window.mountPortorioDetail = () => {
       ],
 
       result:
-        "Developed a playable 2D game prototype for GEMASTIK XIX 2026 while leading the team's development and creative direction.",
+        "Led the team to deliver a playable 2D prototype for GEMASTIK XIX 2026, keeping the concept consistent across everyone's work.",
 
       links: {
         github: "https://github.com/iori-28/Echoes-of-Gaia",

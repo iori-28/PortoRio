@@ -16,13 +16,13 @@ window.mountPortorioExperience = () => {
      `highlights` is optional; the section only appears when it has items. */
   const experienceData = {
     gemastik: {
-      category: "Competition · Game Development",
+      category: "Competition · Team Leadership",
       title: "GEMASTIK XIX 2026",
-      subtitle: "Game Development Division · Team Leader",
+      subtitle: "Team Leader · Game Development Division",
       organization: "Universitas Buana Perjuangan Karawang",
       role: "Team Leader",
       period: "August 2026",
-      overview: "Represented Universitas Buana Perjuangan Karawang, leading a team building a 2D game with Unity and C#. Responsible for the core concept, creative direction, and team coordination.",
+      overview: "Represented Universitas Buana Perjuangan Karawang as team leader, coordinating the team, setting the core concept and creative direction, and keeping development on schedule. The team built a 2D project with Unity and C#.",
       highlights: [],
       proof: [
         { image: "assets/experiences/gemastik/sertificate.pdf", caption: "Participation certificate" }
